@@ -39,6 +39,9 @@
     <ClCompile Include="Instance.cpp">
       <Filter>ソース ファイル\utils</Filter>
     </ClCompile>
+    <ClCompile Include="Surface.cpp">
+      <Filter>ソース ファイル\utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -61,6 +64,12 @@
     </ClInclude>
     <ClInclude Include="VulkanInitializer.h">
       <Filter>ヘッダー ファイル\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Surface.h">
+      <Filter>ヘッダー ファイル\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform.h">
+      <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

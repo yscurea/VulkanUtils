@@ -568,6 +568,7 @@
     <ClCompile Include="Device.cpp" />
     <ClCompile Include="Instance.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Surface.cpp" />
     <ClCompile Include="Swapchain.cpp" />
     <ClCompile Include="utils.cpp" />
     <ClCompile Include="VulkanBaseApp.cpp" />
@@ -578,6 +579,8 @@
   <ItemGroup>
     <ClInclude Include="Device.h" />
     <ClInclude Include="Instance.h" />
+    <ClInclude Include="Platform.h" />
+    <ClInclude Include="Surface.h" />
     <ClInclude Include="Swapchain.h" />
     <ClInclude Include="utils.h" />
     <ClInclude Include="VulkanBaseApp.h" />
