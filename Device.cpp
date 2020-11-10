@@ -1,8 +1,41 @@
 #include "Device.h"
 
 #include <stdexcept>
+#include <set>
+#include <string>
 
+// --------------- static ----------------------
 
+static bool checkDeviceExtensionSupport(VkPhysicalDevice device, std::vector<const char*> device_extensions) {
+	uint32_t extensionCount;
+	vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+	std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+	vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
+	std::set<std::string> requiredExtensions(device_extensions.begin(), device_extensions.end());
+	for (const auto& extension : availableExtensions) {
+		requiredExtensions.erase(extension.extensionName);
+	}
+	return requiredExtensions.empty();
+}
+
+bool Device::isDeviceSuitable(VkPhysicalDevice device) {
+	QueueFamilyIndices indices = findQueueFamilies(device);
+
+	bool extensionsSupported = checkDeviceExtensionSupport(device, this->device_extensions);
+
+	bool swapChainAdequate = false;
+	if (extensionsSupported) {
+		SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device);
+		swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
+	}
+
+	VkPhysicalDeviceFeatures supportedFeatures;
+	vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
+
+	return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
+}
+
+// ------------------ public ------------------
 Device::Device(VkInstance* instance) {
 	if (instance == nullptr) {
 		throw std::runtime_error("gived VkInstance* is nullptr");
@@ -22,10 +55,19 @@ void Device::selectPhysicalDevice(bool(*isSuitable)(VkPhysicalDevice gpu)) {
 	vkEnumeratePhysicalDevices(*instance, &deviceCount, devices.data());
 
 	for (const auto& device : devices) {
-		if (isSuitable(device)) {
-			this->physical_device = device;
-			sample_count_flag_bits = getMaxUsableSampleCount();
-			break;
+		if (isSuitable == nullptr) {
+			if (isDeviceSuitable(device)) {
+				this->physical_device = device;
+				sample_count_flag_bits = getMaxUsableSampleCount();
+				break;
+			}
+		}
+		else {
+			if (isSuitable(device)) {
+				this->physical_device = device;
+				sample_count_flag_bits = getMaxUsableSampleCount();
+				break;
+			}
 		}
 	}
 
@@ -36,6 +78,9 @@ void Device::selectPhysicalDevice(bool(*isSuitable)(VkPhysicalDevice gpu)) {
 
 
 
+void Device::setDeviceQueues(VkSurfaceKHR* surface)const {
+
+}
 
 // --------------------- private ------------------------
 

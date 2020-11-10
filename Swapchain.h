@@ -26,16 +26,15 @@ private:
 	PFN_vkAcquireNextImageKHR fpAcquireNextImageKHR;
 	PFN_vkQueuePresentKHR fpQueuePresentKHR;
 public:
-	VkFormat colorFormat;
-	VkColorSpaceKHR colorSpace;
-	VkSwapchainKHR swapChain = VK_NULL_HANDLE;
-	uint32_t imageCount;
-	std::vector<VkImage> images;
+	VkFormat color_format;
+	VkColorSpaceKHR color_space;
+	VkSwapchainKHR swapchain = VK_NULL_HANDLE;
+	uint32_t image_count;
 	std::vector<vk::utils::Image> swapchain_images;
-	uint32_t queueNodeIndex = UINT32_MAX;
+	uint32_t queue_node_index = UINT32_MAX;
 
 	void createSwapchain(uint32_t* width, uint32_t* height, bool vsync = false);
-	VkResult acquireNextImage(VkSemaphore presentCompleteSemaphore, uint32_t* imageIndex);
+	uint32_t acquireNextImage(VkSemaphore presentCompleteSemaphore);
 	VkResult queuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore = VK_NULL_HANDLE);
 	void cleanup();
 
