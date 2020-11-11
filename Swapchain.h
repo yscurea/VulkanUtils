@@ -37,5 +37,4 @@ public:
 	uint32_t acquireNextImage(VkSemaphore presentCompleteSemaphore);
 	VkResult queuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore = VK_NULL_HANDLE);
 	void cleanup();
-
 };

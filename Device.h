@@ -10,19 +10,25 @@
 class Device
 {
 private:
-	// instance reference
+	// インスタンスの参照
 	VkInstance* instance;
 	// gpu
 	VkPhysicalDevice physical_device = VK_NULL_HANDLE;
-	// device
+	// 論理デバイス
 	VkDevice logical_device;
+	// プロパティー
 	VkPhysicalDeviceProperties	properties;
+	// 特徴
 	VkPhysicalDeviceFeatures features;
+	// 取得できる特徴
 	VkPhysicalDeviceFeatures enabled_features;
+	// メモリプロパティー
 	VkPhysicalDeviceMemoryProperties memory_properties;
 	std::optional<uint32_t> graphics_queue_index;
 	std::optional<uint32_t> compute_queue_index;
-	std::optional<uint32_t> transfer_queue_index;
+	// std::optional<uint32_t> transfer_queue_index;
+	VkQueue graphics_queue;
+	VkQueue present_queue;
 	std::vector<VkQueueFamilyProperties> queue_family_properties;
 	std::vector<const char*> device_extensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 	std::vector<const char*> supported_extensions;
@@ -38,7 +44,7 @@ public:
 
 	void			selectPhysicalDevice(bool (*isSuitable)(VkPhysicalDevice gpu));
 	VkResult        createLogicalDevice(VkPhysicalDeviceFeatures enabledFeatures, std::vector<const char*> enabledExtensions, void* pNextChain, bool useSwapChain = true, VkQueueFlags requestedQueueTypes = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT);
-	void			setDeviceQueues(VkSurfaceKHR* surface) const;
+	void			findDeviceQueues(VkSurfaceKHR* surface) const;
 
 	VkCommandPool   createCommandPool(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags createFlags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 	VkResult		createCommandBuffer();
@@ -50,10 +56,8 @@ public:
 	VkResult        createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, VkDeviceSize size, VkBuffer* buffer, VkDeviceMemory* memory, void* data = nullptr);
 	VkResult        createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, vks::Buffer* buffer, VkDeviceSize size, void* data = nullptr);
 	// void            copyBuffer(vks::Buffer* src, vks::Buffer* dst, VkQueue queue, VkBufferCopy* copyRegion = nullptr);
-	VkCommandBuffer createCommandBuffer(VkCommandBufferLevel level, VkCommandPool pool, bool begin = false);
-	VkCommandBuffer createCommandBuffer(VkCommandBufferLevel level, bool begin = false);
 	bool            extensionSupported(std::vector<const char*> extension);
-	VkFormat        getSupportedDepthFormat(bool checkSamplingSupport);
+	// VkFormat        getSupportedDepthFormat(bool checkSamplingSupport);
 
 private:
 	bool			isDeviceSuitable(VkPhysicalDevice device);

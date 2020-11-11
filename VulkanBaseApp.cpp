@@ -17,6 +17,9 @@ void VulkanBaseApp::initVulkan(const char* application_name) {
 	// swapchain
 	this->vulkan_swapchain = new Swapchain();
 	this->vulkan_swapchain->createSwapchain();
+
+
+	// renderpass
 }
 
 

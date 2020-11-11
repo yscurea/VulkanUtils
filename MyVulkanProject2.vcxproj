@@ -584,6 +584,7 @@
     <ClInclude Include="Platform.h" />
     <ClInclude Include="Surface.h" />
     <ClInclude Include="Swapchain.h" />
+    <ClInclude Include="UniformBuffer.h" />
     <ClInclude Include="utils.h" />
     <ClInclude Include="VulkanBaseApp.h" />
     <ClInclude Include="VulkanInitializer.h" />
