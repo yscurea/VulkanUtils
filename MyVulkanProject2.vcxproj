@@ -565,6 +565,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Buffer.cpp" />
     <ClCompile Include="Device.cpp" />
     <ClCompile Include="Instance.cpp" />
     <ClCompile Include="main.cpp" />
@@ -578,6 +579,7 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Buffer.h" />
     <ClInclude Include="Device.h" />
     <ClInclude Include="Instance.h" />
     <ClInclude Include="Object.h" />
