@@ -18,17 +18,21 @@ class Component {
 
 class Object
 {
-private:
-	// ˆÊ’u
-	MVP matrices;
-	VkPipeline graphics_pipeline;
-	VkShaderModule* shader;
+protected:
 
-	std::list<Component*> component_list;
 public:
-	Object();
-	~Object();
+	Object() {}
+	~Object() {}
 
-	void Update();
+	virtual void start() {}
+	virtual void update() {}
 };
 
+class RenderingObject : public Object
+{
+protected:
+	MVP matrices;
+	VkPipeline* graphics_pipeline;
+	std::vector<VkShaderModule*> shader_modules;
+	std::list<Component*> component_list;
+};

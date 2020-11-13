@@ -1,129 +1,85 @@
 #include "Swapchain.h"
 
-#include <optional>
 
-#if defined(VK_USE_PLATFORM_WIN32_KHR)
-void vk::utils::Swapchain::initSurface(void* platformHandle, void* platformWindow)
-#endif
-{
-	VkResult err = VK_SUCCESS;
+// in this case, use glfw window
 
-	// Create the os-specific surface
-#if defined(VK_USE_PLATFORM_WIN32_KHR)
-	VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {};
-	surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-	surfaceCreateInfo.hinstance = (HINSTANCE)platformHandle;
-	surfaceCreateInfo.hwnd = (HWND)platformWindow;
-	err = vkCreateWin32SurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
-#endif
+vk::utils::SwapChainSupportDetails Swapchain::querySwapChainSupport() {
+	vk::utils::SwapChainSupportDetails details;
 
-	if (err != VK_SUCCESS) {
-		vks::tools::exitFatal("Could not create surface!", err);
-	}
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(*this->physical_device, *this->surface, &details.capabilities);
 
-	// Get available queue family properties
-	uint32_t queueCount;
-	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueCount, NULL);
-	assert(queueCount >= 1);
-
-	std::vector<VkQueueFamilyProperties> queueProps(queueCount);
-	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueCount, queueProps.data());
-
-	// Iterate over each queue to learn whether it supports presenting:
-	// Find a queue with present support
-	// Will be used to present the swap chain images to the windowing system
-	std::vector<VkBool32> supportsPresent(queueCount);
-	for (uint32_t i = 0; i < queueCount; i++)
-	{
-		fpGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, &supportsPresent[i]);
-	}
-
-	// Search for a graphics and a present queue in the array of queue
-	// families, try to find one that supports both
-	uint32_t graphicsQueueNodeIndex = UINT32_MAX;
-	uint32_t presentQueueNodeIndex = UINT32_MAX;
-	for (uint32_t i = 0; i < queueCount; i++)
-	{
-		if ((queueProps[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0)
-		{
-			if (graphicsQueueNodeIndex == UINT32_MAX)
-			{
-				graphicsQueueNodeIndex = i;
-			}
-
-			if (supportsPresent[i] == VK_TRUE)
-			{
-				graphicsQueueNodeIndex = i;
-				presentQueueNodeIndex = i;
-				break;
-			}
-		}
-	}
-	if (presentQueueNodeIndex == UINT32_MAX)
-	{
-		// If there's no queue that supports both present and graphics
-		// try to find a separate present queue
-		for (uint32_t i = 0; i < queueCount; ++i)
-		{
-			if (supportsPresent[i] == VK_TRUE)
-			{
-				presentQueueNodeIndex = i;
-				break;
-			}
-		}
-	}
-
-	// Exit if either a graphics or a presenting queue hasn't been found
-	if (graphicsQueueNodeIndex == UINT32_MAX || presentQueueNodeIndex == UINT32_MAX)
-	{
-		vks::tools::exitFatal("Could not find a graphics and/or presenting queue!", -1);
-	}
-
-	// todo : Add support for separate graphics and presenting queue
-	if (graphicsQueueNodeIndex != presentQueueNodeIndex)
-	{
-		vks::tools::exitFatal("Separate graphics and presenting queues are not supported yet!", -1);
-	}
-
-	queueNodeIndex = graphicsQueueNodeIndex;
-
-	// Get list of supported surface formats
 	uint32_t formatCount;
-	VK_CHECK_RESULT(fpGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, NULL));
-	assert(formatCount > 0);
+	vkGetPhysicalDeviceSurfaceFormatsKHR(*this->physical_device, *this->surface, &formatCount, nullptr);
 
-	std::vector<VkSurfaceFormatKHR> surfaceFormats(formatCount);
-	VK_CHECK_RESULT(fpGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatCount, surfaceFormats.data()));
-
-	// If the surface format list only includes one entry with VK_FORMAT_UNDEFINED,
-	// there is no preferred format, so we assume VK_FORMAT_B8G8R8A8_UNORM
-	if ((formatCount == 1) && (surfaceFormats[0].format == VK_FORMAT_UNDEFINED))
-	{
-		colorFormat = VK_FORMAT_B8G8R8A8_UNORM;
-		colorSpace = surfaceFormats[0].colorSpace;
+	if (formatCount != 0) {
+		details.formats.resize(formatCount);
+		vkGetPhysicalDeviceSurfaceFormatsKHR(*this->physical_device, *this->surface, &formatCount, details.formats.data());
 	}
-	else
-	{
-		// iterate over the list of available surface format and
-		// check for the presence of VK_FORMAT_B8G8R8A8_UNORM
-		bool found_B8G8R8A8_UNORM = false;
-		for (auto&& surfaceFormat : surfaceFormats)
-		{
-			if (surfaceFormat.format == VK_FORMAT_B8G8R8A8_UNORM)
-			{
-				colorFormat = surfaceFormat.format;
-				colorSpace = surfaceFormat.colorSpace;
-				found_B8G8R8A8_UNORM = true;
-				break;
-			}
-		}
 
-		// in case VK_FORMAT_B8G8R8A8_UNORM is not available
-		// select the first available color format
-		if (!found_B8G8R8A8_UNORM)
-		{
-			colorFormat = surfaceFormats[0].format;
-			colorSpace = surfaceFormats[0].colorSpace;
-		}
+	uint32_t presentModeCount;
+	vkGetPhysicalDeviceSurfacePresentModesKHR(*this->physical_device, *this->surface, &presentModeCount, nullptr);
+
+	if (presentModeCount != 0) {
+		details.presentModes.resize(presentModeCount);
+		vkGetPhysicalDeviceSurfacePresentModesKHR(*this->physical_device, *this->surface, &presentModeCount, details.presentModes.data());
 	}
+
+	return details;
+}
+
+
+
+
+
+void Swapchain::createSwapchain(uint32_t* width, uint32_t* height) {
+
+	SwapChainSupportDetails swapChainSupport = querySwapChainSupport();
+
+	VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
+	VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
+	VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
+
+	uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
+	if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
+		imageCount = swapChainSupport.capabilities.maxImageCount;
+	}
+
+	VkSwapchainCreateInfoKHR createInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+	createInfo.surface = surface;
+
+	createInfo.minImageCount = imageCount;
+	createInfo.imageFormat = surfaceFormat.format;
+	createInfo.imageColorSpace = surfaceFormat.colorSpace;
+	createInfo.imageExtent = extent;
+	createInfo.imageArrayLayers = 1;
+	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+	QueueFamilyIndices indices = findQueueFamilies(physical_device);
+	uint32_t queueFamilyIndices[] = { indices.graphicsFamily.value(), indices.presentFamily.value() };
+
+	if (indices.graphicsFamily != indices.presentFamily) {
+		createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+		createInfo.queueFamilyIndexCount = 2;
+		createInfo.pQueueFamilyIndices = queueFamilyIndices;
+	}
+	else {
+		createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	}
+
+	createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
+	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+	createInfo.presentMode = presentMode;
+	createInfo.clipped = VK_TRUE;
+
+	if (vkCreateSwapchainKHR(*device, &createInfo, nullptr, &swapchain) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create swap chain!");
+	}
+
+	vkGetSwapchainImagesKHR(*device, swapchain, &imageCount, nullptr);
+	this->swapchain_images.resize(imageCount);
+	vkGetSwapchainImagesKHR(*device, swapchain, &imageCount, this->swapchain_images.data());
+
+	this->swapchain_image_format = surfaceFormat.format;
+	this->swapchain_extent = extent;
 }

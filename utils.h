@@ -23,71 +23,71 @@
 
 #include "VulkanInitializer.h"
 
-
-const static std::vector<const char*> device_extensions = {
-	VK_KHR_SWAPCHAIN_EXTENSION_NAME
-};
-
-struct QueueFamilyIndices {
-	std::optional<uint32_t> graphicsFamily;
-	std::optional<uint32_t> presentFamily;
-
-	bool isComplete() {
-		return graphicsFamily.has_value() && presentFamily.has_value();
-	}
-};
-
-
-struct SwapChainSupportDetails {
-	VkSurfaceCapabilitiesKHR capabilities;
-	std::vector<VkSurfaceFormatKHR> formats;
-	std::vector<VkPresentModeKHR> presentModes;
-};
-
-
-
-struct Vertex {
-	glm::vec3 pos;
-	glm::vec3 color;
-	glm::vec2 texCoord;
-
-	static VkVertexInputBindingDescription getBindingDescription() {
-		VkVertexInputBindingDescription bindingDescription{};
-		bindingDescription.binding = 0;
-		bindingDescription.stride = sizeof(Vertex);
-		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-		return bindingDescription;
-	}
-
-	static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
-		std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
-
-		attributeDescriptions[0].binding = 0;
-		attributeDescriptions[0].location = 0;
-		attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[0].offset = offsetof(Vertex, pos);
-
-		attributeDescriptions[1].binding = 0;
-		attributeDescriptions[1].location = 1;
-		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[1].offset = offsetof(Vertex, color);
-
-		attributeDescriptions[2].binding = 0;
-		attributeDescriptions[2].location = 2;
-		attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-		attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
-
-		return attributeDescriptions;
-	}
-
-	bool operator==(const Vertex& other) const {
-		return pos == other.pos && color == other.color && texCoord == other.texCoord;
-	}
-};
-
-
 namespace vk::utils {
+
+	const static std::vector<const char*> device_extensions = {
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME
+	};
+
+	struct QueueFamilyIndices {
+		std::optional<uint32_t> graphicsFamily;
+		std::optional<uint32_t> presentFamily;
+
+		bool isComplete() {
+			return graphicsFamily.has_value() && presentFamily.has_value();
+		}
+	};
+
+
+	struct SwapChainSupportDetails {
+		VkSurfaceCapabilitiesKHR capabilities;
+		std::vector<VkSurfaceFormatKHR> formats;
+		std::vector<VkPresentModeKHR> present_modes;
+	};
+
+
+
+	struct Vertex {
+		glm::vec3 pos;
+		glm::vec3 color;
+		glm::vec2 texCoord;
+
+		static VkVertexInputBindingDescription getBindingDescription() {
+			VkVertexInputBindingDescription bindingDescription{};
+			bindingDescription.binding = 0;
+			bindingDescription.stride = sizeof(Vertex);
+			bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+			return bindingDescription;
+		}
+
+		static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
+			std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
+
+			attributeDescriptions[0].binding = 0;
+			attributeDescriptions[0].location = 0;
+			attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+			attributeDescriptions[0].offset = offsetof(Vertex, pos);
+
+			attributeDescriptions[1].binding = 0;
+			attributeDescriptions[1].location = 1;
+			attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+			attributeDescriptions[1].offset = offsetof(Vertex, color);
+
+			attributeDescriptions[2].binding = 0;
+			attributeDescriptions[2].location = 2;
+			attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+			attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
+
+			return attributeDescriptions;
+		}
+
+		bool operator==(const Vertex& other) const {
+			return pos == other.pos && color == other.color && texCoord == other.texCoord;
+		}
+	};
+
+
 	struct Buffer {
 		VkDevice device;
 		VkBuffer buffer = VK_NULL_HANDLE;
@@ -99,6 +99,14 @@ namespace vk::utils {
 	struct Image {
 		VkImage image;
 		VkImageView image_view;
+	};
+
+	struct Texture {
+		uint32_t mipLevels;
+		VkImage textureImage;
+		VkDeviceMemory textureImageMemory;
+		VkImageView textureImageView;
+		VkSampler textureSampler;
 	};
 
 	void checkResult(VkResult result);
@@ -452,37 +460,48 @@ namespace vk::utils {
 
 	namespace shader {
 
-		VkPipelineShaderStageCreateInfo loadShader(VkDevice device, std::string filename, VkShaderStageFlagBits stage)
-		{
-			VkPipelineShaderStageCreateInfo shaderStage{};
-			shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-			shaderStage.stage = stage;
-			shaderStage.pName = "main";
-			std::ifstream is("./shaders/" + filename, std::ios::binary | std::ios::in | std::ios::ate);
+		std::vector<char> readFile(const std::string& filename) {
+			std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
-			if (is.is_open()) {
-				size_t size = is.tellg();
-				is.seekg(0, std::ios::beg);
-				char* shaderCode = new char[size];
-				is.read(shaderCode, size);
-				is.close();
-				assert(size > 0);
-				VkShaderModuleCreateInfo moduleCreateInfo{};
-				moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-				moduleCreateInfo.codeSize = size;
-				moduleCreateInfo.pCode = (uint32_t*)shaderCode;
-				vkCreateShaderModule(device, &moduleCreateInfo, NULL, &shaderStage.module);
-				delete[] shaderCode;
-			}
-			else {
-				std::cerr << "Error: Could not open shader file \"" << filename << "\"" << std::endl;
-				shaderStage.module = VK_NULL_HANDLE;
+			if (!file.is_open()) {
+				throw std::runtime_error("failed to open file!");
 			}
 
-			assert(shaderStage.module != VK_NULL_HANDLE);
-			return shaderStage;
+			size_t fileSize = (size_t)file.tellg();
+			std::vector<char> buffer(fileSize);
+
+			file.seekg(0);
+			file.read(buffer.data(), fileSize);
+
+			file.close();
+
+			return buffer;
 		}
 
+		VkShaderModule createShaderModule(VkDevice device, const std::string& filename) {
+			std::vector<char> code = readFile(filename);
+
+			VkShaderModuleCreateInfo createInfo{};
+			createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+			createInfo.codeSize = code.size();
+			createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+
+			VkShaderModule shaderModule;
+			if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
+				throw std::runtime_error("failed to create shader module!");
+			}
+
+			return shaderModule;
+		}
+
+		VkPipelineShaderStageCreateInfo createShaderStageCreateInfo(VkShaderModule shader_module, VkShaderStageFlagBits stage) {
+			VkPipelineShaderStageCreateInfo shader_stage_create_info{};
+			shader_stage_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+			shader_stage_create_info.stage = stage;
+			shader_stage_create_info.module = shader_module;
+			shader_stage_create_info.pName = "main";
+			return shader_stage_create_info;
+		}
 	}
 
 }

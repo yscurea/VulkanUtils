@@ -3,38 +3,46 @@
 
 
 void VulkanBaseApp::initVulkan(const char* application_name) {
-	// instance
+	// generate instance
 	this->vulkan_instance.createInstance();
 
-	this->vulkan_surface = new Surface();
-	this->vulkan_surface->createSurface(&this->vulkan_instance, this->window);
+	// set debug
 
-	// device
-	this->vulkan_device = new Device(this->vulkan_instance.getInstance());
-	this->vulkan_device->selectPhysicalDevice(nullptr);
+
+	// create surface
+	this->vulkan_surface->createSurface(this->window);
+
+	// select physical device
+	this->vulkan_device->selectPhysicalDevice();
 	this->vulkan_device->createLogicalDevice();
 
-	// swapchain
-	this->vulkan_swapchain = new Swapchain();
+
+	// create swapchain
+	// create image views
 	this->vulkan_swapchain->createSwapchain();
 
 
-	// renderpass
+	// create render pass
+	this->setupRenderPass();
+
+
+
+
+	// ----------- overrice ------------- //
+	// create graphics pipeline
+
+
 }
 
 
-void VulkanBaseApp::run() {
-	this->initVulkan("name");
 
-	this->prepare();
 
-	while (glfwWindowShouldClose(this->window) == false) {
+
+void VulkanBaseApp::renderLoop() {
+	while (!glfwWindowShouldClose(window)) {
+		// ƒCƒxƒ“ƒgˆ—‚ð‚µ‚Ä
 		glfwPollEvents();
-
-		this->render();
+		// •`‰æ‚·‚é
+		renderFrame();
 	}
-
-	vkDeviceWaitIdle(*this->vulkan_device->getLogicalDevice());
-
-	this->cleanup();
 }

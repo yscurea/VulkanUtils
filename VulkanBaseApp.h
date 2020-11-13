@@ -35,15 +35,22 @@ public:
 	virtual void makeCommand(VkCommandBuffer command_buffer) {}
 
 protected:
+	uint32_t width = 800;
+	uint32_t height = 600;
+	GLFWwindow* window;
 	Instance vulkan_instance;
 	Device* vulkan_device;
-	GLFWwindow* window;
 	Surface* vulkan_surface;
 	Swapchain* vulkan_swapchain;
 
+	VkRenderPass render_pass;
+	virtual void setupRenderPass();
+
+	VkCommandPool command_pool;
+
 	void initVulkan(const char* application_name);
 	virtual void prepare() {}
-	void render();
+	void renderLoop();
 	virtual void cleanup() {}
 	void endrun();
 };

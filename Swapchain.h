@@ -3,17 +3,12 @@
 #include "Platform.h"
 #include "utils.h"
 
-typedef struct SwapChainImageBuffers {
-	VkImage image;
-	VkImageView view;
-} SwapChainImageBuffer;
-
 class Swapchain
 {
 private:
 	VkInstance* instance;
 	VkDevice* device;
-	VkPhysicalDevice* physicalDevice;
+	VkPhysicalDevice* physical_device;
 	VkSurfaceKHR* surface;
 	// Function pointers
 	PFN_vkGetPhysicalDeviceSurfaceSupportKHR fpGetPhysicalDeviceSurfaceSupportKHR;
@@ -25,15 +20,18 @@ private:
 	PFN_vkGetSwapchainImagesKHR fpGetSwapchainImagesKHR;
 	PFN_vkAcquireNextImageKHR fpAcquireNextImageKHR;
 	PFN_vkQueuePresentKHR fpQueuePresentKHR;
+
+	SwapChainSupportDetails querySwapChainSupport();
 public:
-	VkFormat color_format;
+	VkFormat swapchain_image_format;
 	VkColorSpaceKHR color_space;
 	VkSwapchainKHR swapchain = VK_NULL_HANDLE;
 	uint32_t image_count;
-	std::vector<vk::utils::Image> swapchain_images;
+	std::vector<VkImage> swapchain_images;
 	uint32_t queue_node_index = UINT32_MAX;
+	VkExtent2D swapchain_extent;
 
-	void createSwapchain(uint32_t* width, uint32_t* height, bool vsync = false);
+	void createSwapchain(uint32_t* width, uint32_t* height);
 	uint32_t acquireNextImage(VkSemaphore presentCompleteSemaphore);
 	VkResult queuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore = VK_NULL_HANDLE);
 	void cleanup();
