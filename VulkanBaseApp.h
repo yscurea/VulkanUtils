@@ -34,23 +34,39 @@ public:
 	// use with override in inheritance class
 	virtual void makeCommand(VkCommandBuffer command_buffer) {}
 
+
+	void initVulkan(const char* application_name);
+	virtual void prepare() {}
+	void renderFrame();
+	void renderLoop();
+	virtual void cleanup() {}
 protected:
 	uint32_t width = 800;
 	uint32_t height = 600;
 	GLFWwindow* window;
+
 	Instance vulkan_instance;
+
 	Device* vulkan_device;
+
 	Surface* vulkan_surface;
+
 	Swapchain* vulkan_swapchain;
 
 	VkRenderPass render_pass;
 	virtual void setupRenderPass();
 
 	VkCommandPool command_pool;
+	void createCommandPool();
+	std::vector<VkCommandBuffer> command_buffers;
 
-	void initVulkan(const char* application_name);
-	virtual void prepare() {}
-	void renderLoop();
-	virtual void cleanup() {}
-	void endrun();
+	std::vector<VkFence> wait_fences;
+
+	void createSynchronization();
+
+	VkSubmitInfo submit_info;
+
+	void presentFrame();
+
+	void windowResize();
 };

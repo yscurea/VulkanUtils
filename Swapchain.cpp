@@ -82,4 +82,51 @@ void Swapchain::createSwapchain(uint32_t* width, uint32_t* height) {
 
 	this->swapchain_image_format = surfaceFormat.format;
 	this->swapchain_extent = extent;
+
+
+
+	// color resource
+	VkFormat colorFormat = this->swapchain_image_format;
+
+	vk::utils::createImage(this->swapchain_extent.width, this->swapchain_extent.height, 1, this->sample_count_flag_bits, colorFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->color_image, this->color_image_memory);
+	this->colorImageView = createImageView(this->colorImage, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+
+
+
+	// depth resource
+	VkFormat depthFormat = findSupportedFormat(
+		{ VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
+		VK_IMAGE_TILING_OPTIMAL,
+		VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
+	);
+
+	this->createImage(this->swapChainExtent.width, this->swapChainExtent.height, 1, this->msaaSamples, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->depthImage, this->depthImageMemory);
+	this->depth_image_view = this->createImageView(this->depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
+
+
+
+
+	// frame buffer
+	this->swapChainFramebuffers.resize(this->swapChainImageViews.size());
+
+	for (size_t i = 0; i < this->swapChainImageViews.size(); i++) {
+		std::array<VkImageView, 3> attachments = {
+			this->colorImageView,
+			this->depthImageView,
+			this->swapChainImageViews[i]
+		};
+
+		VkFramebufferCreateInfo framebufferInfo{};
+		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		framebufferInfo.renderPass = render_pass;
+		framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+		framebufferInfo.pAttachments = attachments.data();
+		framebufferInfo.width = this->swapchain_extent.width;
+		framebufferInfo.height = this->swapchain_extent.height;
+		framebufferInfo.layers = 1;
+
+		if (vkCreateFramebuffer(*this->device, &framebufferInfo, nullptr, &this->swapChainFramebuffers[i]) != VK_SUCCESS) {
+			throw std::runtime_error("failed to create framebuffer!");
+		}
+	}
 }
