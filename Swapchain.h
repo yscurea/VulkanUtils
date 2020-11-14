@@ -52,10 +52,6 @@ public:
 	VkDeviceMemory depth_image_memory;
 	VkImageView depth_image_view;
 
-	VkImage stencil_image;
-	VkDeviceMemory stencil_image_memory;
-	VkImageView stencil_image_view;
-
 	void createSwapchain(uint32_t* width, uint32_t* height);
 	void createDepthImage();
 	uint32_t acquireNextImage(VkSemaphore presentCompleteSemaphore);

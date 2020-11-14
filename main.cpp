@@ -35,13 +35,13 @@ public:
 		// update each object uniform buffers
 		updateUniformBuffers();
 
-		VulkanExampleBase::prepareFrame();
+		VulkanBaseApp::prepareFrame();
 		this->submit_info.commandBufferCount = 1;
-		submit_info.pCommandBuffers = &drawCmdBuffers[currentBuffer];
-		if (vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
+		submit_info.pCommandBuffers = &command_buffers[current_buffer];
+		if (vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE) != VK_SUCCESS) {
 			throw std::runtime_error("failed to queue submit");
 		}
-		VulkanExampleBase::submitFrame();
+		VulkanBaseApp::submitFrame();
 	}
 };
 

@@ -1,26 +1,26 @@
 #include "VulkanBaseApp.h"
-#include "utils.h"
 
 
-void VulkanBaseApp::initVulkan(const char* application_name) {
+void VulkanBaseApp::initVulkan() {
 	// generate instance
-	this->vulkan_instance.createInstance();
+	this->createInstance();
 
+#ifdef _DEBUG
 	// set debug
-
+	this->setupDebugging();
+#endif
 
 	// create surface
-	this->vulkan_surface->createSurface(this->window);
+	this->createSurface();
 
 	// select physical device
-	this->vulkan_device->selectPhysicalDevice();
-	this->vulkan_device->createLogicalDevice();
+	this->selectPhysicalDevice();
 
+	// create logical device
+	this->createLogicalDevice();
 
 	// create swapchain
-	// create image views
-	this->vulkan_swapchain->createSwapchain();
-
+	this->createSwapchain();
 
 	// create render pass
 	this->setupRenderPass();
@@ -31,28 +31,68 @@ void VulkanBaseApp::initVulkan(const char* application_name) {
 	// ----------- overrice ------------- //
 	// create graphics pipeline
 
+}
 
+void VulkanBaseApp::cleanup() {
+
+
+	this->deleteInstance();
 }
 
 
+void VulkanBaseApp::createInstance() {
+#ifdef _DEBUG
+	if (!checkValidationLayerSupport()) {
+		throw std::runtime_error("validation layers requested, but not available!");
+	}
+#endif
+
+	VkApplicationInfo app_info = vk::utils::getApplicationInfo();
+
+	VkInstanceCreateInfo createInfo = vk::utils::getInstanceCreateInfo();
+	createInfo.pApplicationInfo = &app_info;
+
+	std::vector<const char*> extensions;
+	{
+		uint32_t glfwExtensionCount = 0;
+		const char** glfwExtensions;
+		glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+		std::vector<const char*> tmp_extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+
+#ifdef _DEBUG
+		tmp_extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+#endif
+		extensions = tmp_extensions;
+	}
+
+	createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
+	createInfo.ppEnabledExtensionNames = extensions.data();
+
+#ifdef _DEBUG
+	VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
+	createInfo.enabledLayerCount = static_cast<uint32_t>(validation_layer_names.size());
+	createInfo.ppEnabledLayerNames = validation_layer_names.data();
+
+	populateDebugMessengerCreateInfo(debugCreateInfo);
+	createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
+#endif
+
+	createInfo.enabledLayerCount = 0;
+	createInfo.pNext = nullptr;
+
+	if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create instance!");
+	}
+}
 
 void VulkanBaseApp::createSynchronization() {
-	VkFenceCreateInfo fence_create_info{};
-	fence_create_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-	fence_create_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-	wait_fences.resize(command_buffers.size());
-	for (auto& fence : wait_fences) {
-
-		if ((vkCreateFence(*this->vulkan_device->getLogicalDevice(), &fence_create_info, nullptr, &fence)) != VK_SUCCESS) {
-			throw std::runtime_error("failed to create fence");
-		}
-	}
 }
 
 void VulkanBaseApp::setupRenderPass() {
 	VkAttachmentDescription colorAttachment{};
 	colorAttachment.format = this->swapchain_image_format;
-	colorAttachment.samples = this->msaaSamples;
+	colorAttachment.samples = this->sample_count_flag_bits;
 	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -61,8 +101,25 @@ void VulkanBaseApp::setupRenderPass() {
 	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	VkAttachmentDescription depthAttachment{};
-	depthAttachment.format = this->findDepthFormat();
-	depthAttachment.samples = this->msaaSamples;
+	VkFormat format;
+	auto candidates = { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT };
+	auto tiling = VK_IMAGE_TILING_OPTIMAL;
+	auto features = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+	{
+		for (VkFormat f : candidates) {
+			VkFormatProperties props;
+			vkGetPhysicalDeviceFormatProperties(physical_device, format, &props);
+			if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
+				format = f;
+			}
+			else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
+				format = f;
+			}
+		}
+		throw std::runtime_error("failed to find supported format!");
+	}
+	depthAttachment.format = format;
+	depthAttachment.samples = this->sample_count_flag_bits;
 	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -71,7 +128,7 @@ void VulkanBaseApp::setupRenderPass() {
 	depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 	VkAttachmentDescription colorAttachmentResolve{};
-	colorAttachmentResolve.format = swapChainImageFormat;
+	colorAttachmentResolve.format = this->swapchain_image_format;
 	colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
 	colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -80,17 +137,20 @@ void VulkanBaseApp::setupRenderPass() {
 	colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
+	// color buffer
 	VkAttachmentReference colorAttachmentRef{};
 	colorAttachmentRef.attachment = 0;
 	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+	// depth buffer
 	VkAttachmentReference depthAttachmentRef{};
 	depthAttachmentRef.attachment = 1;
 	depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-	VkAttachmentReference colorAttachmentResolveRef{};
-	colorAttachmentResolveRef.attachment = 2;
-	colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	// color buffer
+	// VkAttachmentReference colorAttachmentResolveRef{};
+	// colorAttachmentResolveRef.attachment = 2;
+	// colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	VkSubpassDescription subpass{};
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
@@ -117,7 +177,7 @@ void VulkanBaseApp::setupRenderPass() {
 	renderPassInfo.dependencyCount = 1;
 	renderPassInfo.pDependencies = &dependency;
 
-	if (vkCreateRenderPass(*this->device, &renderPassInfo, nullptr, &this->render_pass) != VK_SUCCESS) {
+	if (vkCreateRenderPass(this->device, &renderPassInfo, nullptr, &this->render_pass) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create render pass!");
 	}
 }
@@ -126,9 +186,9 @@ void VulkanBaseApp::setupRenderPass() {
 void VulkanBaseApp::createCommandPool() {
 	VkCommandPoolCreateInfo cmdPoolInfo = {};
 	cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	cmdPoolInfo.queueFamilyIndex = vulkan_device->getGraphicsQueueIndex();
+	cmdPoolInfo.queueFamilyIndex = this->graphics_queue_index.value();
 	cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-	if (vkCreateCommandPool(*this->vulkan_device->getLogicalDevice(), &cmdPoolInfo, nullptr, &command_pool) != VK_SUCCESS) {
+	if (vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &command_pool) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create command pool");
 	}
 }
@@ -142,21 +202,10 @@ void VulkanBaseApp::renderLoop() {
 		// ƒCƒxƒ“ƒgˆ—‚ð‚µ‚Ä
 		glfwPollEvents();
 		// •`‰æ‚·‚é
-		renderFrame();
+		this->renderFrame();
 	}
 }
 
 
 void presentFrame() {
-	VkResult result = swapchain.queuePresent(queue, currentBuffer, semaphores.renderComplete);
-	if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR))) {
-		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-			windowResize();
-			return;
-		}
-		else {
-			VK_CHECK_RESULT(result);
-		}
-	}
-	VK_CHECK_RESULT(vkQueueWaitIdle(queue));
 }
