@@ -1,13 +1,13 @@
 #include "VulkanBaseApp.h"
 
 
+// public ---------------------
 void VulkanBaseApp::initVulkan() {
 	// generate instance
 	this->createInstance();
 
 #ifdef _DEBUG
-	// set debug
-	this->setupDebugging();
+	void setupDebugMessenger();
 #endif
 
 	// create surface
@@ -27,7 +27,6 @@ void VulkanBaseApp::initVulkan() {
 	// create render pass
 	this->setupRenderPass();
 
-
 	// create command pool
 	this->createCommandPool();
 
@@ -36,12 +35,27 @@ void VulkanBaseApp::initVulkan() {
 
 }
 
+void VulkanBaseApp::renderFrame() {
+
+}
+
+void VulkanBaseApp::renderLoop() {
+	while (!glfwWindowShouldClose(this->window)) {
+		glfwPollEvents();
+		this->renderFrame();
+	}
+}
+
+
+void presentFrame() {
+}
+
 void VulkanBaseApp::cleanup() {
 
 	this->deleteInstance();
 }
 
-
+// --------------------- instance ----------------------
 void VulkanBaseApp::createInstance() {
 #ifdef _DEBUG
 	if (!checkValidationLayerSupport()) {
@@ -88,7 +102,94 @@ void VulkanBaseApp::createInstance() {
 	}
 }
 
+// -------------------- surface ------------------------
 
+void VulkanBaseApp::createSurface() {
+	// #ifdef USE_GLFW
+	if (glfwCreateWindowSurface(this->instance, this->window, nullptr, &this->surface) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create window surface");
+	}
+	// #elseif
+	// #endif
+}
+
+// -------------------- swapchain ----------------------
+void VulkanBaseApp::createSwapchain() {
+	vulkan::SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice);
+
+	VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
+	VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
+	VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
+
+	uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
+	if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
+		imageCount = swapChainSupport.capabilities.maxImageCount;
+	}
+
+	VkSwapchainCreateInfoKHR createInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+	createInfo.surface = surface;
+
+	createInfo.minImageCount = imageCount;
+	createInfo.imageFormat = surfaceFormat.format;
+	createInfo.imageColorSpace = surfaceFormat.colorSpace;
+	createInfo.imageExtent = extent;
+	createInfo.imageArrayLayers = 1;
+	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+	QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+	uint32_t queueFamilyIndices[] = { indices.graphicsFamily.value(), indices.presentFamily.value() };
+
+	if (indices.graphicsFamily != indices.presentFamily) {
+		createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+		createInfo.queueFamilyIndexCount = 2;
+		createInfo.pQueueFamilyIndices = queueFamilyIndices;
+	}
+	else {
+		createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	}
+
+	createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
+	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+	createInfo.presentMode = presentMode;
+	createInfo.clipped = VK_TRUE;
+
+	if (vkCreateSwapchainKHR(this->device, &createInfo, nullptr, &this->swapchain) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create swap chain!");
+	}
+
+	vkGetSwapchainImagesKHR(this->device, this->swapchain, &imageCount, nullptr);
+	swapchain_images.resize(imageCount);
+	vkGetSwapchainImagesKHR(this->device, this->swapchain, &imageCount, swapchain_images.data());
+
+	swapchain_image_format = surfaceFormat.format;
+	swapchain_extent = extent;
+
+	// ---------- create image views -------------
+	this->swapchain_image_views.resize(swapchain_images.size());
+
+	for (uint32_t i = 0; i < swapchain_images.size(); i++) {
+		this->swapchain_image_views[i] = vulkan::utils::createImageView(swapchain_images[i], swapchain_image_format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+	}
+
+}
+void VulkanBaseApp::recreateSwapchain() {
+
+}
+void VulkanBaseApp::createColorResources() {
+	VkFormat colorFormat = swapchain_image_format;
+
+	vulkan::utils::createImage(this->device, this->swapchain_extent.width, this->swapchain_extent.height, 1, this->sample_count_flag_bits, colorFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->color_image, this->color_image_memory);
+	this->color_image_view = vulkan::utils::createImageView(this->device, this->color_image, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+}
+void VulkanBaseApp::createDepthResources() {
+	VkFormat depthFormat = this->findDepthFormat();
+
+	vulkan::utils::createImage(this->device, this->swapchain_extent.width, this->swapchain_extent.height, 1, this->msaaSamples, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->depth_image, this->depth_image_memory);
+	this->depth_image_view = vulkan::utils::createImageView(this->device, this->depth_image, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
+}
+
+// --------------------- render pass -------------------
 void VulkanBaseApp::setupRenderPass() {
 	VkAttachmentDescription colorAttachment{};
 	colorAttachment.format = this->swapchain_image_format;
@@ -187,6 +288,7 @@ void VulkanBaseApp::setupRenderPass() {
 }
 
 
+// ---------------- command --------------
 void VulkanBaseApp::createCommandPool() {
 	VkCommandPoolCreateInfo cmdPoolInfo = {};
 	cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -209,21 +311,4 @@ void VulkanBaseApp::createCommandBuffers() {
 	if (vkAllocateCommandBuffers(this->device, &allocInfo, this->command_buffers.data()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to allocate command buffers!");
 	}
-}
-
-void VulkanBaseApp::renderFrame() {
-
-}
-
-void VulkanBaseApp::renderLoop() {
-	while (!glfwWindowShouldClose(window)) {
-		// ƒCƒxƒ“ƒgˆ—‚ð‚µ‚Ä
-		glfwPollEvents();
-		// •`‰æ‚·‚é
-		this->renderFrame();
-	}
-}
-
-
-void presentFrame() {
 }

@@ -47,7 +47,7 @@ public:
 	}
 
 	void makeCommand() override {
-
+		// ‹…‘Ì‘S•”•`‰æ‚·‚é
 	}
 };
 

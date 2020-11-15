@@ -52,8 +52,21 @@ protected:
 	// ------------ instance ------------
 	VkInstance instance;
 	std::vector<const char*> supported_instance_extensions;
+
 	void createInstance();
 	void deleteInstance();
+
+	// ------------- debug --------------
+	void setupDebugMessenger() {
+		/*
+		VkDebugUtilsMessengerCreateInfoEXT createInfo;
+		populateDebugMessengerCreateInfo(createInfo);
+
+		if (CreateDebugUtilsMessengerEXT(this->instance, &createInfo, nullptr, &this->debugMessenger) != VK_SUCCESS) {
+			throw std::runtime_error("failed to set up debug messenger!");
+		}
+		//*/
+	}
 
 
 	// ------------ device -------------
@@ -70,31 +83,38 @@ protected:
 	std::vector<const char*> device_extensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 	std::vector<const char*> supported_extensions;
 	VkSampleCountFlagBits sample_count_flag_bits;
+
 	void selectPhysicalDevice();
 	void createLogicalDevice();
 
 
 	// ------------- surface ---------------
 	VkSurfaceKHR surface;
+	VkSurfaceFormatKHR surface_format;
 	void createSurface();
 	void recreateSurface();
-	uint32_t width = 800;
-	uint32_t height = 600;
+	uint32_t window_width = 800;
+	uint32_t window_height = 600;
 	GLFWwindow* window;
+
 	void createWindow();
-	void windowResize();
+	void windowResize(); // call back
 
 	// ------------- swapchain ---------------
-	VkFormat swapchain_image_format;
 	VkSwapchainKHR swapchain = VK_NULL_HANDLE;
+	vulkan::SwapChainSupportDetails swapchain_support_details;
+	VkFormat swapchain_image_format;
 	uint32_t swapchain_image_count;
 	std::vector<VkImage> swapchain_images;
+	std::vector<VkImageView> swapchain_image_views;
 	VkExtent2D swapchain_extent;
 	VkSampleCountFlagBits sample_count_flag_bits = VK_SAMPLE_COUNT_1_BIT;
 	// syncronization
 	std::vector<VkSemaphore> image_available_semaphores;
 	std::vector<VkSemaphore> render_finished_semaphores;
+
 	void createSemaphores();
+
 	std::vector<VkFence> in_flight_fences;
 	std::vector<VkFence> images_in_flight;
 	size_t current_frame = 0;
@@ -104,29 +124,35 @@ protected:
 	VkImage color_image;
 	VkDeviceMemory color_image_memory;
 	VkImageView color_image_view;
+	void createColorResources();
 	// depth buffer
 	VkImage depth_image;
 	VkDeviceMemory depth_image_memory;
 	VkImageView depth_image_view;
+	VkFormat depth_format;
+	void createDepthResources();
 	// stencil buffer
 	VkImage stencil_image;
 	VkDeviceMemory stencil_image_memory;
 	VkImageView stencil_image_view;
+
 	void createSwapchain();
 	void recreateSwapchain();
 	void deleteSwapchain();
 
 	// ------------- renderpass ------------
 	VkRenderPass render_pass;
+
 	// ïKóvÇ…âûÇ∂ÇƒrennderpassÇÃê∂ê¨ñ@ÇïœÇ¶ÇÈ MSAA etc
 	virtual void setupRenderPass();
 
 	// -------------- command --------------
 	// pool
 	VkCommandPool command_pool;
-	void createCommandPool();
 	// buffers
 	std::vector<VkCommandBuffer> command_buffers;
+
+	void createCommandPool();
 	virtual void createCommandBuffers();
 
 
@@ -134,8 +160,6 @@ protected:
 	std::vector<VkShaderModule> shader_modules;
 	VkPipelineCache pipelineCache;
 
-
-	// VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
 
 
 #ifdef _DEBUG
