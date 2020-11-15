@@ -22,19 +22,21 @@ void VulkanBaseApp::initVulkan() {
 	// create swapchain
 	this->createSwapchain();
 
+
+
 	// create render pass
 	this->setupRenderPass();
 
 
+	// create command pool
+	this->createCommandPool();
 
-
-	// ----------- overrice ------------- //
-	// create graphics pipeline
+	// create command buffers
+	this->createCommandBuffers();
 
 }
 
 void VulkanBaseApp::cleanup() {
-
 
 	this->deleteInstance();
 }
@@ -86,8 +88,6 @@ void VulkanBaseApp::createInstance() {
 	}
 }
 
-void VulkanBaseApp::createSynchronization() {
-}
 
 void VulkanBaseApp::setupRenderPass() {
 	VkAttachmentDescription colorAttachment{};
@@ -106,17 +106,21 @@ void VulkanBaseApp::setupRenderPass() {
 	auto tiling = VK_IMAGE_TILING_OPTIMAL;
 	auto features = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
 	{
+		bool is_fulled = false;
 		for (VkFormat f : candidates) {
 			VkFormatProperties props;
 			vkGetPhysicalDeviceFormatProperties(physical_device, format, &props);
 			if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
 				format = f;
+				is_fulled = true;
 			}
 			else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
 				format = f;
+				is_fulled = true;
 			}
 		}
-		throw std::runtime_error("failed to find supported format!");
+		if (is_fulled == false)
+			throw std::runtime_error("failed to find supported format!");
 	}
 	depthAttachment.format = format;
 	depthAttachment.samples = this->sample_count_flag_bits;
@@ -147,10 +151,10 @@ void VulkanBaseApp::setupRenderPass() {
 	depthAttachmentRef.attachment = 1;
 	depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-	// color buffer
-	// VkAttachmentReference colorAttachmentResolveRef{};
-	// colorAttachmentResolveRef.attachment = 2;
-	// colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	// MSAA
+	VkAttachmentReference colorAttachmentResolveRef{};
+	colorAttachmentResolveRef.attachment = 2;
+	colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	VkSubpassDescription subpass{};
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
@@ -190,6 +194,20 @@ void VulkanBaseApp::createCommandPool() {
 	cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 	if (vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &command_pool) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create command pool");
+	}
+}
+
+void VulkanBaseApp::createCommandBuffers() {
+	this->command_buffers.resize(this->swapchain_image_count);
+
+	VkCommandBufferAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocInfo.commandPool = this->command_pool;
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocInfo.commandBufferCount = (uint32_t)this->command_buffers.size();
+
+	if (vkAllocateCommandBuffers(this->device, &allocInfo, this->command_buffers.data()) != VK_SUCCESS) {
+		throw std::runtime_error("failed to allocate command buffers!");
 	}
 }
 

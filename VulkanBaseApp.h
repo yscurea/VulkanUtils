@@ -23,10 +23,6 @@
 #include "Swapchain.h"
 #include "utils.h"
 
-struct ApplicationCreateInfo {
-	const char* application_name;
-};
-
 
 class VulkanBaseApp {
 public:
@@ -38,20 +34,30 @@ public:
 
 	// 必要最低限の初期化
 	void initVulkan();
-	void prepare();
+	// 継承先において追加で必要な処理
+	virtual void prepare();
+	// コマンドを積む
+	virtual void makeCommand() = 0;
+
+	void prepareFrame();
+	void renderFrame();
+	void submitFrame();
 	virtual void render() = 0;
 	void renderLoop();
+
+	// 必要な解放処理
 	void cleanup();
 protected:
 
-	// インスタンス
+	// ------------ instance ------------
 	VkInstance instance;
 	std::vector<const char*> supported_instance_extensions;
 	void createInstance();
 	void deleteInstance();
 
-	// デバイス
-	VkPhysicalDevice physical_device;
+
+	// ------------ device -------------
+	VkPhysicalDevice physical_device = VK_NULL_HANDLE;
 	VkDevice device;
 	VkPhysicalDeviceProperties	properties;
 	VkPhysicalDeviceFeatures features;
@@ -67,7 +73,8 @@ protected:
 	void selectPhysicalDevice();
 	void createLogicalDevice();
 
-	// surface
+
+	// ------------- surface ---------------
 	VkSurfaceKHR surface;
 	void createSurface();
 	void recreateSurface();
@@ -77,15 +84,17 @@ protected:
 	void createWindow();
 	void windowResize();
 
-	// swapchain
+	// ------------- swapchain ---------------
 	VkFormat swapchain_image_format;
 	VkSwapchainKHR swapchain = VK_NULL_HANDLE;
+	uint32_t swapchain_image_count;
 	std::vector<VkImage> swapchain_images;
 	VkExtent2D swapchain_extent;
 	VkSampleCountFlagBits sample_count_flag_bits = VK_SAMPLE_COUNT_1_BIT;
 	// syncronization
 	std::vector<VkSemaphore> image_available_semaphores;
 	std::vector<VkSemaphore> render_finished_semaphores;
+	void createSemaphores();
 	std::vector<VkFence> in_flight_fences;
 	std::vector<VkFence> images_in_flight;
 	size_t current_frame = 0;
@@ -107,32 +116,26 @@ protected:
 	void recreateSwapchain();
 	void deleteSwapchain();
 
-	// レンダーパス
+	// ------------- renderpass ------------
 	VkRenderPass render_pass;
+	// 必要に応じてrennderpassの生成法を変える MSAA etc
 	virtual void setupRenderPass();
 
-	// コマンドプール
+	// -------------- command --------------
+	// pool
 	VkCommandPool command_pool;
 	void createCommandPool();
-
-	// コマンドバッファ
+	// buffers
 	std::vector<VkCommandBuffer> command_buffers;
-	virtual void createCommandBuffer();
+	virtual void createCommandBuffers();
 
 
-	void createSynchronization();
-
-	VkSubmitInfo submit_info;
-
-	void renderFrame();
-
-	void present();
-
+	// -------------- resources -----------
 	std::vector<VkShaderModule> shader_modules;
 	VkPipelineCache pipelineCache;
 
 
-	VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+	// VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
 
 
 #ifdef _DEBUG

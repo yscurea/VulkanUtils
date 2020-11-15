@@ -3,8 +3,10 @@
 
 class VulkanApp : public VulkanBaseApp {
 	std::vector<Object> spheres;
+	std::vector<VkPipeline> pipelines;
+	void createPipeline();
 public:
-
+	VulkanApp() {}
 	void prepare() {
 		VulkanBaseApp::prepare();
 		this->spheres.resize(100);
@@ -31,7 +33,7 @@ public:
 	void updateUniformBuffers() {
 
 	}
-	virtual void render() {
+	void render() override {
 		// update each object uniform buffers
 		updateUniformBuffers();
 
@@ -42,6 +44,10 @@ public:
 			throw std::runtime_error("failed to queue submit");
 		}
 		VulkanBaseApp::submitFrame();
+	}
+
+	void makeCommand() override {
+
 	}
 };
 
