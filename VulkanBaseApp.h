@@ -41,7 +41,7 @@ public:
 
 	void prepareFrame();
 	void renderFrame();
-	void submitFrame();
+	void submitFrame(uint32_t& image_index, VkSemaphore* render_finished_semaphores);
 	virtual void render() = 0;
 	void renderLoop();
 

@@ -35,7 +35,28 @@ void VulkanBaseApp::initVulkan() {
 }
 
 void VulkanBaseApp::renderFrame() {
+	// ‘Ò‚¿
+	vkWaitForFences(this->device, 1, &this->in_flight_fences[this->current_frame], VK_TRUE, UINT64_MAX);
 
+	// ŽŸ‚Ì‰æ‘œ‚ðŽæ“¾
+	uint32_t image_index;
+	VkResult result =
+		vkAcquireNextImageKHR(
+			this->device,
+			this->swapchain,
+			UINT64_MAX,
+			this->image_available_semaphores[this->current_frame],
+			VK_NULL_HANDLE,
+			&image_index
+		);
+
+	if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+		this->recreateSwapchain();
+		return;
+	}
+	else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+		throw std::runtime_error("failed to acquire swap chain image!");
+	}
 }
 
 void VulkanBaseApp::renderLoop() {
