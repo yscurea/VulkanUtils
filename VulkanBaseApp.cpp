@@ -32,7 +32,6 @@ void VulkanBaseApp::initVulkan() {
 
 	// create command buffers
 	this->createCommandBuffers();
-
 }
 
 void VulkanBaseApp::renderFrame() {
@@ -47,7 +46,28 @@ void VulkanBaseApp::renderLoop() {
 }
 
 
-void presentFrame() {
+void VulkanBaseApp::submitFrame(uint32_t& image_index, VkSemaphore* render_finished_semaphores) {
+	VkPresentInfoKHR presentInfo{};
+	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+	presentInfo.waitSemaphoreCount = 1;
+	presentInfo.pWaitSemaphores = render_finished_semaphores;
+
+	VkSwapchainKHR swapchains[] = { this->swapchain };
+	presentInfo.swapchainCount = 1;
+	presentInfo.pSwapchains = swapchains;
+
+	presentInfo.pImageIndices = &image_index;
+
+	VkResult result = vkQueuePresentKHR(this->present_queue, &presentInfo);
+
+	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || this->framebuffer_resized) {
+		this->framebuffer_resized = false;
+		this->recreateSwapchain();
+	}
+	else if (result != VK_SUCCESS) {
+		throw std::runtime_error("failed to present swap chain image!");
+	}
 }
 
 void VulkanBaseApp::cleanup() {
@@ -103,7 +123,6 @@ void VulkanBaseApp::createInstance() {
 }
 
 // -------------------- surface ------------------------
-
 void VulkanBaseApp::createSurface() {
 	// #ifdef USE_GLFW
 	if (glfwCreateWindowSurface(this->instance, this->window, nullptr, &this->surface) != VK_SUCCESS) {
@@ -112,6 +131,7 @@ void VulkanBaseApp::createSurface() {
 	// #elseif
 	// #endif
 }
+
 
 // -------------------- swapchain ----------------------
 void VulkanBaseApp::createSwapchain() {
@@ -188,6 +208,7 @@ void VulkanBaseApp::createDepthResources() {
 	vulkan::utils::createImage(this->device, this->swapchain_extent.width, this->swapchain_extent.height, 1, this->msaaSamples, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->depth_image, this->depth_image_memory);
 	this->depth_image_view = vulkan::utils::createImageView(this->device, this->depth_image, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
 }
+
 
 // --------------------- render pass -------------------
 void VulkanBaseApp::setupRenderPass() {

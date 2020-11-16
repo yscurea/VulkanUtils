@@ -56,17 +56,13 @@ protected:
 	void createInstance();
 	void deleteInstance();
 
-	// ------------- debug --------------
-	void setupDebugMessenger() {
-		/*
-		VkDebugUtilsMessengerCreateInfoEXT createInfo;
-		populateDebugMessengerCreateInfo(createInfo);
 
-		if (CreateDebugUtilsMessengerEXT(this->instance, &createInfo, nullptr, &this->debugMessenger) != VK_SUCCESS) {
-			throw std::runtime_error("failed to set up debug messenger!");
-		}
-		//*/
-	}
+#ifdef _DEBUG
+	// ------------- debug --------------
+	std::vector<const char*> validation_layer_names = { "VK_LAYER_KHRONOS_validation" };
+	VkDebugUtilsMessengerEXT debug_messenger;
+	void setupDebugMessenger();
+#endif
 
 
 	// ------------ device -------------
@@ -112,6 +108,7 @@ protected:
 	// syncronization
 	std::vector<VkSemaphore> image_available_semaphores;
 	std::vector<VkSemaphore> render_finished_semaphores;
+	bool framebuffer_resized = false;
 
 	void createSemaphores();
 
@@ -160,26 +157,4 @@ protected:
 	std::vector<VkShaderModule> shader_modules;
 	VkPipelineCache pipelineCache;
 
-
-
-#ifdef _DEBUG
-	std::vector<const char*> validation_layer_names = { "VK_LAYER_KHRONOS_validation" };
-
-	VKAPI_ATTR VkBool32 VKAPI_CALL messageCallback(
-		VkDebugReportFlagsEXT flags,
-		VkDebugReportObjectTypeEXT objType,
-		uint64_t srcObject,
-		size_t location,
-		int32_t msgCode,
-		const char* pLayerPrefix,
-		const char* pMsg,
-		void* pUserData
-	);
-	void setupDebugging(
-		VkInstance instance,
-		VkDebugReportFlagsEXT flags,
-		VkDebugReportCallbackEXT callBack
-	);
-	void deleteDebugCallback(VkInstance instance);
-#endif
 };

@@ -43,11 +43,35 @@ namespace vulkan {
 
 	namespace debug {
 		extern std::vector<const char*> default_validation_layer_names = { "VK_LAYER_KHRONOS_validation" };
+
+
+		VKAPI_ATTR VkBool32 VKAPI_CALL defaultDebugCallBack(
+			VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+			VkDebugUtilsMessageTypeFlagsEXT messageType,
+			const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+			void* pUserData
+		);
+
+		VkResult CreateDebugUtilsMessengerEXT(
+			VkInstance instance,
+			const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+			const VkAllocationCallbacks* pAllocator,
+			VkDebugUtilsMessengerEXT* pDebugMessenger
+		);
+
+		void DestroyDebugUtilsMessengerEXT(
+			VkInstance instance,
+			VkDebugUtilsMessengerEXT debugMessenger,
+			const VkAllocationCallbacks* pAllocator
+		);
+
 	}
 
 
 
 	namespace utils {
+		void checkResult(VkResult result);
+
 		void createImage(
 			VkDevice& device,
 			uint32_t width,
