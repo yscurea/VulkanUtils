@@ -79,6 +79,7 @@ protected:
 	std::vector<const char*> device_extensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 	std::vector<const char*> supported_extensions;
 	VkSampleCountFlagBits sample_count_flag_bits;
+	VkSubmitInfo submit_info;
 
 	void selectPhysicalDevice();
 	void createLogicalDevice();

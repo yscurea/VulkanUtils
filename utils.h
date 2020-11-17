@@ -72,6 +72,11 @@ namespace vulkan {
 	namespace utils {
 		void checkResult(VkResult result);
 
+		std::vector<char> readFile(const std::string& filename);
+
+		VkShaderModule createShaderModule(const std::vector<char>& code);
+
+
 		void createImage(
 			VkDevice& device,
 			uint32_t width,
