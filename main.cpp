@@ -16,6 +16,8 @@ class VulkanApp : public VulkanBaseApp {
 	VkDescriptorSetLayout descriptor_set_layout;
 	VkDescriptorSet descriptor_set;
 
+	VkClearColorValue default_clear_color = { { 0.025f, 0.025f, 0.025f, 1.0f } };
+
 	void loadModel() {
 		unique_model.load(model_path);
 		for (auto sphere : this->spheres) {
@@ -167,8 +169,60 @@ class VulkanApp : public VulkanBaseApp {
 		}
 	}
 	void prepareCommandBuffers() {
-		for (auto i = 0; i < this->command_buffers.size(); i++) {
+		VkCommandBufferBeginInfo command_buffer_begin_info{};
+		command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		VkClearValue clearValues[2];
+		clearValues[0].color = this->default_clear_color;
+		clearValues[1].depthStencil = { 1.0f, 0 };
 
+		VkRenderPassBeginInfo renderPassBeginInfo{};
+		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		renderPassBeginInfo.renderPass = this->render_pass;
+		renderPassBeginInfo.renderArea.offset.x = 0;
+		renderPassBeginInfo.renderArea.offset.y = 0;
+		renderPassBeginInfo.renderArea.extent.width = this->window_width;
+		renderPassBeginInfo.renderArea.extent.height = this->window_height;
+		renderPassBeginInfo.clearValueCount = 2;
+		renderPassBeginInfo.pClearValues = clearValues;
+
+		for (int32_t i = 0; i < this->command_buffers.size(); ++i) {
+			renderPassBeginInfo.framebuffer = this->swapchain_frame_buffers[i];
+
+			vulkan::utils::checkResult(vkBeginCommandBuffer(this->command_buffers[i], &command_buffer_begin_info));
+
+			vkCmdBeginRenderPass(this->command_buffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+			vkCmdBindPipeline(this->command_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, this->graphics_pipeline);
+
+			VkViewport viewport;
+			viewport.height = (float)this->window_height;
+			viewport.width = (float)this->window_width;
+			viewport.minDepth = 0.0f;
+			viewport.maxDepth = 1.0f;
+			vkCmdSetViewport(this->command_buffers[i], 0, 1, &viewport);
+
+			VkRect2D scissor;
+			scissor.extent.width = this->window_width;
+			scissor.extent.height = this->window_height;
+			scissor.offset.x = this->offset_x;
+			scissor.offset.y = this->offset_y;
+			vkCmdSetScissor(this->command_buffers[i], 0, 1, &scissor);
+
+			VkDeviceSize offsets[1] = { 0 };
+			model.bindBuffers(this->command_buffers[i]);
+
+			/*
+				[POI] Render cubes with separate descriptor sets
+			*/
+			for (auto sphere : this->spheres) {
+				// Bind the cube's descriptor set. This tells the command buffer to use the uniform buffer and image set for this cube
+				vkCmdBindDescriptorSets(this->command_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, this->pipeline_layout, 0, 1, &sphere.descriptor_set, 0, nullptr);
+				model.draw(this->command_buffers[i]);
+			}
+
+			vkCmdEndRenderPass(this->command_buffers[i]);
+
+			vulkan::utils::checkResult(vkEndCommandBuffer(this->command_buffers[i]));
 		}
 	}
 	void prepareUniformBuffers() {
