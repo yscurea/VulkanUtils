@@ -1,11 +1,26 @@
 #include "VulkanBaseApp.h"
 #include "Object.h"
+#include "UniformBuffer.h"
+
+static std::string model_path = "model/sphere.obj";
 
 class VulkanApp : public VulkanBaseApp {
-	std::vector<Object> spheres;
-	VkPipeline graphics_pipeline;
-	void loadModel() {
+	std::vector<RenderingObject> spheres;
+	// メモリ節約のため一つのモデルを全てで共有する．排他的アクセスは保証される
+	Model unique_model;
 
+	VkPipeline graphics_pipeline;
+	VkPipelineLayout pipeline_layout;
+
+	VkDescriptorPool descriptor_pool;
+	VkDescriptorSetLayout descriptor_set_layout;
+	VkDescriptorSet descriptor_set;
+
+	void loadModel() {
+		unique_model.load(model_path);
+		for (auto sphere : this->spheres) {
+			sphere.loadModel(this->unique_model);
+		}
 	}
 	void createDescriptorPool() {
 
@@ -54,17 +69,18 @@ class VulkanApp : public VulkanBaseApp {
 		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 		inputAssembly.primitiveRestartEnable = VK_FALSE;
 
+		// vulkanでは上下反転するのでここで調整する
 		VkViewport viewport{};
 		viewport.x = 0.0f;
-		viewport.y = (float)this->swapChainExtent.height;
-		viewport.width = (float)this->swapChainExtent.width;
-		viewport.height = -(float)this->swapChainExtent.height;
+		viewport.y = (float)this->swapchain_extent.height;
+		viewport.width = (float)this->swapchain_extent.width;
+		viewport.height = -(float)this->swapchain_extent.height;
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
 
 		VkRect2D scissor{};
 		scissor.offset = { 0, 0 };
-		scissor.extent = this->swapChainExtent;
+		scissor.extent = this->swapchain_extent;
 
 		// ビューポートの情報設定
 		VkPipelineViewportStateCreateInfo viewportState{};
@@ -89,7 +105,7 @@ class VulkanApp : public VulkanBaseApp {
 		VkPipelineMultisampleStateCreateInfo multisampling{};
 		multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 		multisampling.sampleShadingEnable = VK_FALSE;
-		multisampling.rasterizationSamples = this->msaaSamples;
+		multisampling.rasterizationSamples = this->sample_count_flag_bits;
 
 		// デプスステンシルの情報設定
 		VkPipelineDepthStencilStateCreateInfo depthStencil{};
@@ -121,10 +137,10 @@ class VulkanApp : public VulkanBaseApp {
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		pipelineLayoutInfo.setLayoutCount = 1;
-		pipelineLayoutInfo.pSetLayouts = &this->descriptorSetLayout;
+		pipelineLayoutInfo.pSetLayouts = &this->descriptor_set_layout;
 
 		// パイプラインレイアウト生成
-		if (vkCreatePipelineLayout(this->device, &pipelineLayoutInfo, nullptr, &this->pipelineLayout) != VK_SUCCESS) {
+		if (vkCreatePipelineLayout(this->device, &pipelineLayoutInfo, nullptr, &this->pipeline_layout) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create pipeline layout!");
 		}
 
@@ -140,13 +156,13 @@ class VulkanApp : public VulkanBaseApp {
 		pipelineInfo.pMultisampleState = &multisampling;
 		pipelineInfo.pDepthStencilState = &depthStencil;
 		pipelineInfo.pColorBlendState = &colorBlending;
-		pipelineInfo.layout = this->pipelineLayout;
-		pipelineInfo.renderPass = this->renderPass;
+		pipelineInfo.layout = this->pipeline_layout;
+		pipelineInfo.renderPass = this->render_pass;
 		pipelineInfo.subpass = 0;
 		pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
 		// グラフィックスパイプライン生成
-		if (vkCreateGraphicsPipelines(this->device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &this->graphicsPipeline) != VK_SUCCESS) {
+		if (vkCreateGraphicsPipelines(this->device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &this->graphics_pipeline) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create graphics pipeline!");
 		}
 	}
@@ -159,15 +175,16 @@ class VulkanApp : public VulkanBaseApp {
 	}
 	void updateUniformBuffers() {
 	}
-public:
-	VulkanApp(uint32_t sphere_count) { this->spheres.resize(sphere_count); }
-
 	void prepareUniformBuffers() {
 		for (auto& object : this->spheres) {
 			// create uniform buffer
 		}
 		this->updateUniformBuffers();
 	}
+
+public:
+	VulkanApp(uint32_t sphere_count) { this->spheres.resize(sphere_count); }
+
 	void prepare() {
 		VulkanBaseApp::prepare();
 		this->loadModel();
@@ -177,6 +194,7 @@ public:
 		this->createGraphicsPipeline();
 		this->prepareCommandBuffers();
 	}
+
 	void render() override {
 		updateUniformBuffers();
 

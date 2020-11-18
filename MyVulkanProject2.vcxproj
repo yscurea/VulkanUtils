@@ -571,10 +571,12 @@
     <ClCompile Include="Device.cpp" />
     <ClCompile Include="Instance.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Model.cpp" />
     <ClCompile Include="Object.cpp" />
     <ClCompile Include="Surface.cpp" />
     <ClCompile Include="Swapchain.cpp" />
     <ClCompile Include="utils.cpp" />
+    <ClCompile Include="Vertex.cpp" />
     <ClCompile Include="VulkanBaseApp.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -586,12 +588,14 @@
     <ClInclude Include="Debug.h" />
     <ClInclude Include="Device.h" />
     <ClInclude Include="Instance.h" />
+    <ClInclude Include="Model.h" />
     <ClInclude Include="Object.h" />
     <ClInclude Include="Platform.h" />
     <ClInclude Include="Surface.h" />
     <ClInclude Include="Swapchain.h" />
     <ClInclude Include="UniformBuffer.h" />
     <ClInclude Include="utils.h" />
+    <ClInclude Include="Vertex.h" />
     <ClInclude Include="VulkanBaseApp.h" />
     <ClInclude Include="VulkanInitializer.h" />
   </ItemGroup>
