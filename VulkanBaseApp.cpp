@@ -50,6 +50,8 @@ void VulkanBaseApp::renderFrame() {
 			&image_index
 		);
 
+	this->render();
+
 	if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 		this->recreateSwapchain();
 		return;

@@ -250,17 +250,23 @@ public:
 	}
 
 	void render() override {
+		// 定数バッファ更新
 		updateUniformBuffers();
 
-		// 次の画像
+		// 次の画像インデックス取得
+		// ウィンドウリサイズチェック
 		uint32_t image_index;
 		VulkanBaseApp::prepareFrame();
+
+		// 転送
 		this->submit_info.commandBufferCount = 1;
 		this->submit_info.pCommandBuffers = &command_buffers[image_index];
 		if (vkQueueSubmit(this->graphics_queue, 1, &submit_info, VK_NULL_HANDLE) != VK_SUCCESS) {
 			throw std::runtime_error("failed to queue submit");
 		}
-		VulkanBaseApp::submitFrame();
+
+		// present
+		VulkanBaseApp::submitFrame(image_index, );
 	}
 
 	void makeCommand() override {

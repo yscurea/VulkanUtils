@@ -48,7 +48,6 @@ public:
 	// •K—v‚È‰ğ•úˆ—
 	void cleanup();
 protected:
-
 	// ------------ instance ------------
 	VkInstance instance;
 	std::vector<const char*> supported_instance_extensions;
