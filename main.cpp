@@ -226,8 +226,14 @@ class VulkanApp : public VulkanBaseApp {
 		}
 	}
 	void prepareUniformBuffers() {
+		for (auto sphere : this->spheres) {
+			createBuffer();
+		}
 	}
 	void updateUniformBuffers() {
+		for (auto sphere : this->spheres) {
+			createBuffer();
+		}
 	}
 	void prepareUniformBuffers() {
 		for (auto& object : this->spheres) {
