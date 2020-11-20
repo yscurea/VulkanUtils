@@ -26,10 +26,79 @@ class VulkanApp : public VulkanBaseApp {
 			sphere.loadModel(this->unique_model);
 		}
 	}
-	void createDescriptorPool() {
+	void prepareDescriptorSets() {
+		std::array<VkDescriptorSetLayoutBinding, 2> set_layout_bindings{};
 
-	}
-	void createDescriptorSets() {
+		// 定数バッファに使う
+		set_layout_bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		set_layout_bindings[0].binding = 0;
+		set_layout_bindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		set_layout_bindings[0].descriptorCount = 1;
+
+		// テクスチャサンプラーに使う
+		set_layout_bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		set_layout_bindings[1].binding = 1;
+		set_layout_bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		set_layout_bindings[1].descriptorCount = 1;
+
+		VkDescriptorSetLayoutCreateInfo descriptorLayoutCI{};
+		descriptorLayoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		descriptorLayoutCI.bindingCount = static_cast<uint32_t>(set_layout_bindings.size());
+		descriptorLayoutCI.pBindings = set_layout_bindings.data();
+
+		vulkan::utils::checkResult(vkCreateDescriptorSetLayout(this->device, &descriptorLayoutCI, nullptr, &this->descriptor_set_layout));
+
+
+
+
+		std::array<VkDescriptorPoolSize, 2> descriptor_pool_sizes{};
+
+		// 球体の数だけ作成される
+		descriptor_pool_sizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptor_pool_sizes[0].descriptorCount = 1 + static_cast<uint32_t>(this->spheres.size());
+
+		// 球体の数だけ作成される可能性がある（今回は多分ない）
+		descriptor_pool_sizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptor_pool_sizes[1].descriptorCount = static_cast<uint32_t>(this->spheres.size());
+
+		VkDescriptorPoolCreateInfo descriptor_pool_create_info = {};
+		descriptor_pool_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+		descriptor_pool_create_info.poolSizeCount = static_cast<uint32_t>(descriptor_pool_sizes.size());
+		descriptor_pool_create_info.pPoolSizes = descriptor_pool_sizes.data();
+		descriptor_pool_create_info.maxSets = static_cast<uint32_t>(this->spheres.size());
+
+		vulkan::utils::checkResult(vkCreateDescriptorPool(this->device, &descriptor_pool_create_info, nullptr, &this->descriptor_pool));
+
+
+		for (auto& sphere : this->spheres) {
+
+			VkDescriptorSetAllocateInfo allocateInfo{};
+			allocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+			allocateInfo.descriptorPool = this->descriptor_pool;
+			allocateInfo.descriptorSetCount = 1;
+			allocateInfo.pSetLayouts = &this->descriptor_set_layout;
+			vulkan::utils::checkResult(vkAllocateDescriptorSets(device, &allocateInfo, &sphere.descriptor_set));
+
+			std::array<VkWriteDescriptorSet, 2> write_descriptor_sets{};
+
+			// Binding 0: RenderingObject uniform buffer
+			write_descriptor_sets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			write_descriptor_sets[0].dstSet = sphere.descriptor_set;
+			write_descriptor_sets[0].dstBinding = 0;
+			write_descriptor_sets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			write_descriptor_sets[0].pBufferInfo = &sphere.uniform_buffer.descriptor;
+			write_descriptor_sets[0].descriptorCount = 1;
+
+			// Binding 1: RenderingObject texture
+			write_descriptor_sets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			write_descriptor_sets[1].dstSet = sphere.descriptor_set;
+			write_descriptor_sets[1].dstBinding = 1;
+			write_descriptor_sets[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			write_descriptor_sets[1].pImageInfo = &sphere.texture.descriptor;
+			write_descriptor_sets[1].descriptorCount = 1;
+
+			vkUpdateDescriptorSets(device, static_cast<uint32_t>(write_descriptor_sets.size()), write_descriptor_sets.data(), 0, nullptr);
+		}
 
 	}
 	void createGraphicsPipeline() {
@@ -247,15 +316,25 @@ class VulkanApp : public VulkanBaseApp {
 	}
 
 public:
-	VulkanApp(uint32_t sphere_count) { this->spheres.resize(sphere_count); }
+	VulkanApp(uint32_t sphere_count = 100) {
+		this->spheres.resize(sphere_count);
+		// vulkan 初期化
+		this->initVulkan();
+		// 諸々準備
+		this->prepare();
+	}
 
 	void prepare() {
 		VulkanBaseApp::prepare();
+		// モデル読み込み
 		this->loadModel();
-		this->createDescriptorPool();
-		this->createDescriptorSets();
+		// デスクリプタセット準備
+		this->prepareDescriptorSets();
+		// 定数バッファ準備
 		this->prepareUniformBuffers();
+		// グラフィックスパイプライン生成
 		this->createGraphicsPipeline();
+		// コマンドバッファ準備
 		this->prepareCommandBuffers();
 	}
 
@@ -266,6 +345,7 @@ public:
 		// 次の画像インデックス取得
 		// ウィンドウリサイズチェック
 		uint32_t image_index;
+
 		VulkanBaseApp::prepareFrame();
 
 		// 転送
@@ -278,20 +358,11 @@ public:
 		// present
 		VulkanBaseApp::submitFrame(image_index, );
 	}
-
-	void makeCommand() override {
-	}
 };
 
 int main() {
 	uint32_t sphere_count = 100;
 	VulkanApp* app = new VulkanApp(sphere_count);
-
-	// initialize vulkan setting
-	app->initVulkan();
-
-	// prepare before start rendering
-	app->prepare();
 
 	// main loop
 	app->renderLoop();

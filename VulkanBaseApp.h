@@ -35,9 +35,7 @@ public:
 	// 必要最低限の初期化
 	void initVulkan();
 	// 継承先において追加で必要な処理
-	virtual void prepare();
-	// コマンドを積む
-	virtual void makeCommand() = 0;
+	void prepare();
 
 	void prepareFrame();
 	void renderFrame();
@@ -89,10 +87,12 @@ protected:
 	VkSurfaceFormatKHR surface_format;
 	void createSurface();
 	void recreateSurface();
+	void deleteSurface();
+
+	// window
 	uint32_t window_width = 800;
 	uint32_t window_height = 600;
 	GLFWwindow* window;
-
 	void createWindow();
 	void windowResize(); // call back
 
@@ -139,14 +139,13 @@ protected:
 
 	// ------------- renderpass ------------
 	VkRenderPass render_pass;
-
-	// 必要に応じてrennderpassの生成法を変える MSAA etc
+	// 必要に応じてrennderpassの生成法を変えるためvirtual MSAA etc
 	virtual void setupRenderPass();
 
 	// -------------- command --------------
 	// pool
 	VkCommandPool command_pool;
-	// buffers
+	// buffers swapchainの枚数だけ用意する
 	std::vector<VkCommandBuffer> command_buffers;
 
 	void createCommandPool();
@@ -156,5 +155,5 @@ protected:
 	// -------------- resources -----------
 	std::vector<VkShaderModule> shader_modules;
 	VkPipelineCache pipelineCache;
-
+	VkDescriptorPool descriptor_pool = VK_NULL_HANDLE;
 };

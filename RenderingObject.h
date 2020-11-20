@@ -5,6 +5,7 @@
 #include "MVP.h"
 #include "Buffer.h"
 #include "Component.h"
+#include "Texture.h"
 
 #include <list>
 #include <vector>
@@ -24,13 +25,15 @@ public:
 	void start() override;
 	void update() override;
 
-protected:
 	// 頂点バッファ、インデックスバッファ等
 	Model model;
 	// 各行列
 	MVP matrices;
 	// 定数バッファ
 	Buffer uniform_buffer;
+	Texture texture;
+	// 
+	VkDescriptorSet descriptor_set;
 	// pipeline参照
 	VkPipeline* graphics_pipeline;
 	// 各シェーダーの参照

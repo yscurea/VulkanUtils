@@ -11,6 +11,8 @@ class Camera {
 private:
 	glm::vec3 position;
 	glm::vec3 rotation;
+	float near_clip;
+	float far_clip;
 public:
 	void updateCameraPosition();
 };

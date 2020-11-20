@@ -1,5 +1,6 @@
 #include "VulkanBaseApp.h"
 
+#include <vk_mem_alloc.h>
 
 // public ---------------------
 void VulkanBaseApp::initVulkan() {
@@ -334,11 +335,11 @@ void VulkanBaseApp::setupRenderPass() {
 
 // ---------------- command --------------
 void VulkanBaseApp::createCommandPool() {
-	VkCommandPoolCreateInfo cmdPoolInfo = {};
-	cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	cmdPoolInfo.queueFamilyIndex = this->graphics_queue_index.value();
-	cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-	if (vkCreateCommandPool(device, &cmdPoolInfo, nullptr, &command_pool) != VK_SUCCESS) {
+	VkCommandPoolCreateInfo cmd_pool_info = {};
+	cmd_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	cmd_pool_info.queueFamilyIndex = this->graphics_queue_index.value();
+	cmd_pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+	if (vkCreateCommandPool(device, &cmd_pool_info, nullptr, &this->command_pool) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create command pool");
 	}
 }
@@ -346,13 +347,13 @@ void VulkanBaseApp::createCommandPool() {
 void VulkanBaseApp::createCommandBuffers() {
 	this->command_buffers.resize(this->swapchain_image_count);
 
-	VkCommandBufferAllocateInfo allocInfo{};
-	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	allocInfo.commandPool = this->command_pool;
-	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	allocInfo.commandBufferCount = (uint32_t)this->command_buffers.size();
+	VkCommandBufferAllocateInfo alloc_info{};
+	alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	alloc_info.commandPool = this->command_pool;
+	alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	alloc_info.commandBufferCount = (uint32_t)this->command_buffers.size();
 
-	if (vkAllocateCommandBuffers(this->device, &allocInfo, this->command_buffers.data()) != VK_SUCCESS) {
+	if (vkAllocateCommandBuffers(this->device, &alloc_info, this->command_buffers.data()) != VK_SUCCESS) {
 		throw std::runtime_error("failed to allocate command buffers!");
 	}
 }
