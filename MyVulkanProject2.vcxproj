@@ -449,7 +449,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>C:\stb\stb-master;C:\tinyobjloader\tinyobjloader-master;C:\Libs\VulkanMemoryAllocator-master;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\stb\stb-master;C:\tinyobjloader\tinyobjloader-master;C:\Libs\VulkanMemoryAllocator-master\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -484,7 +484,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>C:\stb\stb-master;C:\tinyobjloader\tinyobjloader-master;C:\Libs\VulkanMemoryAllocator-master;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\stb\stb-master;C:\tinyobjloader\tinyobjloader-master;C:\Libs\VulkanMemoryAllocator-master\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -519,7 +519,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>C:\stb\stb-master;C:\tinyobjloader\tinyobjloader-master;C:\Libs\VulkanMemoryAllocator-master;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\stb\stb-master;C:\tinyobjloader\tinyobjloader-master;C:\Libs\VulkanMemoryAllocator-master\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -554,7 +554,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>C:\stb\stb-master;C:\tinyobjloader\tinyobjloader-master;C:\Libs\VulkanMemoryAllocator-master;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\stb\stb-master;C:\tinyobjloader\tinyobjloader-master;C:\Libs\VulkanMemoryAllocator-master\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -573,8 +573,10 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Model.cpp" />
     <ClCompile Include="Object.cpp" />
+    <ClCompile Include="RenderingObject.cpp" />
     <ClCompile Include="Surface.cpp" />
     <ClCompile Include="Swapchain.cpp" />
+    <ClCompile Include="Texture.cpp" />
     <ClCompile Include="utils.cpp" />
     <ClCompile Include="Vertex.cpp" />
     <ClCompile Include="VulkanBaseApp.cpp" />
@@ -585,14 +587,18 @@
   <ItemGroup>
     <ClInclude Include="Buffer.h" />
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="Component.h" />
     <ClInclude Include="Debug.h" />
     <ClInclude Include="Device.h" />
     <ClInclude Include="Instance.h" />
     <ClInclude Include="Model.h" />
+    <ClInclude Include="MVP.h" />
     <ClInclude Include="Object.h" />
     <ClInclude Include="Platform.h" />
+    <ClInclude Include="RenderingObject.h" />
     <ClInclude Include="Surface.h" />
     <ClInclude Include="Swapchain.h" />
+    <ClInclude Include="Texture.h" />
     <ClInclude Include="UniformBuffer.h" />
     <ClInclude Include="utils.h" />
     <ClInclude Include="Vertex.h" />
