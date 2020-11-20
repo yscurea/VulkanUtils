@@ -1,5 +1,7 @@
 #include "VulkanBaseApp.h"
 #include "Object.h"
+#include "RenderingObject.h"
+#include "Model.h"
 #include "UniformBuffer.h"
 
 static std::string model_path = "model/sphere.obj";
@@ -226,20 +228,22 @@ class VulkanApp : public VulkanBaseApp {
 		}
 	}
 	void prepareUniformBuffers() {
+		// 全部の球体の定数バッファを作成して割り当てる
 		for (auto sphere : this->spheres) {
-			createBuffer();
+			vulkan::utils::createBuffer(
+				this->device,
+				sizeof(MVP),
+				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+				sphere.buffer
+			);
 		}
 	}
 	void updateUniformBuffers() {
+		// 各球体の定数バッファを更新する
 		for (auto sphere : this->spheres) {
 			createBuffer();
 		}
-	}
-	void prepareUniformBuffers() {
-		for (auto& object : this->spheres) {
-			// create uniform buffer
-		}
-		this->updateUniformBuffers();
 	}
 
 public:

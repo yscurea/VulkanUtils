@@ -6,11 +6,12 @@
 
 class Buffer
 {
+private:
 	// バッファを確保するデバイスの参照
 	VkDevice* device;
+	// メモリ
 	VkDeviceMemory* memory = VK_NULL_HANDLE;
-
-	// バッファ
+	// バッファ本体
 	VkBuffer buffer = VK_NULL_HANDLE;
 	VkDescriptorBufferInfo descriptor_buffer_info;
 	// 大きさ
@@ -20,8 +21,10 @@ class Buffer
 	void* mapped = nullptr;
 	// 何に使うバッファなのか
 	VkBufferUsageFlags usage_flags;
+	// メモリプロパティ
 	VkMemoryPropertyFlags memory_property_flags;
 
+public:
 	// マップする
 	VkResult map(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
 	// マップを解除する
@@ -35,6 +38,5 @@ class Buffer
 	// 無効化
 	VkResult invalidate(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
 	// 破棄
-	void destroy();
+	void deleted();
 };
-
