@@ -4,8 +4,9 @@
 
 class Texture
 {
-	VkDevice* device;
-	VkDeviceMemory* device_memory = VK_NULL_HANDLE;
+public:
+	VkDevice device;
+	VkDeviceMemory device_memory = VK_NULL_HANDLE;
 	VkImage image;
 	VkImageView view;
 	uint32_t width;

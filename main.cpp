@@ -11,9 +11,11 @@ class VulkanApp : public VulkanBaseApp {
 	// メモリ節約のため一つのモデルを全てで共有する．排他的アクセスは保証される
 	Model unique_model;
 
+	// パイプライン、今回は単一
 	VkPipeline graphics_pipeline;
 	VkPipelineLayout pipeline_layout;
 
+	// 各球体用のデスクリプタセット
 	VkDescriptorPool descriptor_pool;
 	VkDescriptorSetLayout descriptor_set_layout;
 	VkDescriptorSet descriptor_set;
@@ -27,6 +29,7 @@ class VulkanApp : public VulkanBaseApp {
 		}
 	}
 	void prepareDescriptorSets() {
+		// -------------- レイアウト作成 --------------
 		std::array<VkDescriptorSetLayoutBinding, 2> set_layout_bindings{};
 
 		// 定数バッファに使う
@@ -51,6 +54,7 @@ class VulkanApp : public VulkanBaseApp {
 
 
 
+		// --------------------- pool作成 ---------------
 		std::array<VkDescriptorPoolSize, 2> descriptor_pool_sizes{};
 
 		// 球体の数だけ作成される
@@ -70,8 +74,9 @@ class VulkanApp : public VulkanBaseApp {
 		vulkan::utils::checkResult(vkCreateDescriptorPool(this->device, &descriptor_pool_create_info, nullptr, &this->descriptor_pool));
 
 
-		for (auto& sphere : this->spheres) {
 
+		// -------------------- デスクリプタセット作成
+		for (auto& sphere : this->spheres) {
 			VkDescriptorSetAllocateInfo allocateInfo{};
 			allocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 			allocateInfo.descriptorPool = this->descriptor_pool;
@@ -86,7 +91,7 @@ class VulkanApp : public VulkanBaseApp {
 			write_descriptor_sets[0].dstSet = sphere.descriptor_set;
 			write_descriptor_sets[0].dstBinding = 0;
 			write_descriptor_sets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			write_descriptor_sets[0].pBufferInfo = &sphere.uniform_buffer.descriptor;
+			write_descriptor_sets[0].pBufferInfo = &sphere.uniform_buffer.descriptor_buffer_info;
 			write_descriptor_sets[0].descriptorCount = 1;
 
 			// Binding 1: RenderingObject texture
@@ -94,7 +99,7 @@ class VulkanApp : public VulkanBaseApp {
 			write_descriptor_sets[1].dstSet = sphere.descriptor_set;
 			write_descriptor_sets[1].dstBinding = 1;
 			write_descriptor_sets[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			write_descriptor_sets[1].pImageInfo = &sphere.texture.descriptor;
+			write_descriptor_sets[1].pImageInfo = &sphere.texture.descriptor_image_info;
 			write_descriptor_sets[1].descriptorCount = 1;
 
 			vkUpdateDescriptorSets(device, static_cast<uint32_t>(write_descriptor_sets.size()), write_descriptor_sets.data(), 0, nullptr);
@@ -273,10 +278,8 @@ class VulkanApp : public VulkanBaseApp {
 			vkCmdSetViewport(this->command_buffers[i], 0, 1, &viewport);
 
 			VkRect2D scissor;
-			scissor.extent.width = this->window_width;
-			scissor.extent.height = this->window_height;
-			scissor.offset.x = this->offset_x;
-			scissor.offset.y = this->offset_y;
+			scissor.extent = this->swapchain_extent;
+			scissor.offset = { 0,0 };
 			vkCmdSetScissor(this->command_buffers[i], 0, 1, &scissor);
 
 			VkDeviceSize offsets[1] = { 0 };
@@ -304,7 +307,8 @@ class VulkanApp : public VulkanBaseApp {
 				sizeof(MVP),
 				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-				sphere.buffer
+				sphere.uniform_buffer.buffer,
+				*sphere.uniform_buffer.memory
 			);
 		}
 	}
@@ -324,14 +328,15 @@ public:
 		this->prepare();
 	}
 
+	// 事前準備を全てここでする
 	void prepare() {
 		VulkanBaseApp::prepare();
 		// モデル読み込み
 		this->loadModel();
-		// デスクリプタセット準備
-		this->prepareDescriptorSets();
 		// 定数バッファ準備
 		this->prepareUniformBuffers();
+		// デスクリプタセット準備
+		this->prepareDescriptorSets();
 		// グラフィックスパイプライン生成
 		this->createGraphicsPipeline();
 		// コマンドバッファ準備
@@ -358,6 +363,8 @@ public:
 		// present
 		VulkanBaseApp::submitFrame(image_index, );
 	}
+
+	bool renderLoop() {}
 };
 
 int main() {

@@ -23,7 +23,11 @@ public:
 	void render();
 
 	void start() override;
-	void update() override;
+	void update() {
+		for (auto component : this->component_list) {
+			component->update();
+		}
+	}
 
 	// 頂点バッファ、インデックスバッファ等
 	Model model;
@@ -31,8 +35,9 @@ public:
 	MVP matrices;
 	// 定数バッファ
 	Buffer uniform_buffer;
+	// テクスチャ
 	Texture texture;
-	// 
+	// デスクリプタセット
 	VkDescriptorSet descriptor_set;
 	// pipeline参照
 	VkPipeline* graphics_pipeline;

@@ -6,11 +6,11 @@
 
 class Buffer
 {
-private:
+public:
 	// バッファを確保するデバイスの参照
-	VkDevice* device;
+	VkDevice device;
 	// メモリ
-	VkDeviceMemory* memory = VK_NULL_HANDLE;
+	VkDeviceMemory memory = VK_NULL_HANDLE;
 	// バッファ本体
 	VkBuffer buffer = VK_NULL_HANDLE;
 	VkDescriptorBufferInfo descriptor_buffer_info;
@@ -24,7 +24,8 @@ private:
 	// メモリプロパティ
 	VkMemoryPropertyFlags memory_property_flags;
 
-public:
+	VkDescriptorSet descriptor_set;
+
 	// マップする
 	VkResult map(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
 	// マップを解除する

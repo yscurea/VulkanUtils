@@ -69,6 +69,7 @@ protected:
 	VkPhysicalDeviceFeatures features;
 	VkPhysicalDeviceMemoryProperties memory_properties;
 	std::optional<uint32_t> graphics_queue_index;
+	std::optional<uint32_t> present_queue_index;
 	std::optional<uint32_t> compute_queue_index;
 	VkQueue graphics_queue;
 	VkQueue present_queue;
@@ -83,6 +84,7 @@ protected:
 
 
 	// ------------- surface ---------------
+	// todo : プラットフォームごとによる条件コンパイル
 	VkSurfaceKHR surface;
 	VkSurfaceFormatKHR surface_format;
 	void createSurface();
