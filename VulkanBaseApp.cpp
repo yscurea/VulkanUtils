@@ -51,15 +51,13 @@ void VulkanBaseApp::renderFrame() {
 			&image_index
 		);
 
-	this->render();
+	// 描画、継承先でオーバーライドする
+	this->updateFrame();
 
-	if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-		this->recreateSwapchain();
-		return;
-	}
-	else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
-		throw std::runtime_error("failed to acquire swap chain image!");
-	}
+	// コマンド送信
+	this->submitFrame(image_index);
+	// 表示
+	this->presentFrame(image_index, &this->render_finished_semaphores[this->current_frame]);
 }
 
 void VulkanBaseApp::renderLoop() {
@@ -69,21 +67,44 @@ void VulkanBaseApp::renderLoop() {
 	}
 }
 
+void VulkanBaseApp::submitFrame(uint32_t image_index) {
+	VkSubmitInfo submit_info{};
+	submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-void VulkanBaseApp::submitFrame(uint32_t& image_index, VkSemaphore* render_finished_semaphores) {
-	VkPresentInfoKHR presentInfo{};
-	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+	VkSemaphore wait_semaphores[] = { this->image_available_semaphores[current_frame] };
+	VkPipelineStageFlags wait_stages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+	submit_info.waitSemaphoreCount = 1;
+	submit_info.pWaitSemaphores = wait_semaphores;
+	submit_info.pWaitDstStageMask = wait_stages;
 
-	presentInfo.waitSemaphoreCount = 1;
-	presentInfo.pWaitSemaphores = render_finished_semaphores;
+	submit_info.commandBufferCount = 1;
+	submit_info.pCommandBuffers = &this->command_buffers[image_index];
+
+	VkSemaphore signal_semaphores[] = { this->render_finished_semaphores[current_frame] };
+	submit_info.signalSemaphoreCount = 1;
+	submit_info.pSignalSemaphores = signal_semaphores;
+
+	vkResetFences(this->device, 1, &this->in_flight_fences[current_frame]);
+
+	if (vkQueueSubmit(this->graphics_queue, 1, &submit_info, this->in_flight_fences[current_frame]) != VK_SUCCESS) {
+		throw std::runtime_error("failed to submit draw command buffer!");
+	}
+}
+
+void VulkanBaseApp::presentFrame(uint32_t image_index, VkSemaphore* render_finished_semaphores) {
+	VkPresentInfoKHR present_info{};
+	present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+	present_info.waitSemaphoreCount = 1;
+	present_info.pWaitSemaphores = render_finished_semaphores;
 
 	VkSwapchainKHR swapchains[] = { this->swapchain };
-	presentInfo.swapchainCount = 1;
-	presentInfo.pSwapchains = swapchains;
+	present_info.swapchainCount = 1;
+	present_info.pSwapchains = swapchains;
 
-	presentInfo.pImageIndices = &image_index;
+	present_info.pImageIndices = &image_index;
 
-	VkResult result = vkQueuePresentKHR(this->present_queue, &presentInfo);
+	VkResult result = vkQueuePresentKHR(this->present_queue, &present_info);
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || this->framebuffer_resized) {
 		this->framebuffer_resized = false;

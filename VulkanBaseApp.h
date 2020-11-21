@@ -37,11 +37,16 @@ public:
 	// 継承先において追加で必要な処理
 	void prepare();
 
-	void prepareFrame();
+
 	void renderFrame();
-	void submitFrame(uint32_t& image_index, VkSemaphore* render_finished_semaphores);
-	virtual void render() = 0;
-	void renderLoop();
+	// 毎フレームの準備
+	void prepareFrame();
+	// 毎フレーム転送
+	void submitFrame(uint32_t image_index);
+	// 毎フレーム表示
+	void presentFrame(uint32_t image_index, VkSemaphore* render_finished_semaphores);
+	virtual void updateFrame() = 0;
+	virtual void renderLoop();
 
 	// 必要な解放処理
 	void cleanup();
@@ -110,6 +115,7 @@ protected:
 	// syncronization
 	std::vector<VkSemaphore> image_available_semaphores;
 	std::vector<VkSemaphore> render_finished_semaphores;
+	uint32_t semaphores_size = 2;
 	bool framebuffer_resized = false;
 
 	void createSemaphores();

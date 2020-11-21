@@ -24,5 +24,6 @@ class Model
 	VkSampler textureSampler;
 public:
 	void load(std::string file_path);
+	void bind();
 };
 

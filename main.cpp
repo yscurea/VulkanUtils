@@ -283,15 +283,15 @@ class VulkanApp : public VulkanBaseApp {
 			vkCmdSetScissor(this->command_buffers[i], 0, 1, &scissor);
 
 			VkDeviceSize offsets[1] = { 0 };
-			model.bindBuffers(this->command_buffers[i]);
 
-			/*
-				[POI] Render cubes with separate descriptor sets
-			*/
+			//todo: 頂点バッファとインデックスバッファのバインド
+			// 同じバッファを使用するので一回だけバインドする
+			this->unique_model.bind();
+
 			for (auto sphere : this->spheres) {
-				// Bind the cube's descriptor set. This tells the command buffer to use the uniform buffer and image set for this cube
+				// 定数バッファ等はそれぞれバインドする
 				vkCmdBindDescriptorSets(this->command_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, this->pipeline_layout, 0, 1, &sphere.descriptor_set, 0, nullptr);
-				model.draw(this->command_buffers[i]);
+				sphere.draw();
 			}
 
 			vkCmdEndRenderPass(this->command_buffers[i]);
@@ -308,14 +308,14 @@ class VulkanApp : public VulkanBaseApp {
 				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 				sphere.uniform_buffer.buffer,
-				*sphere.uniform_buffer.memory
+				sphere.uniform_buffer.memory
 			);
 		}
 	}
 	void updateUniformBuffers() {
 		// 各球体の定数バッファを更新する
 		for (auto sphere : this->spheres) {
-			createBuffer();
+			sphere.updateUniformBuffer();
 		}
 	}
 
@@ -343,28 +343,10 @@ public:
 		this->prepareCommandBuffers();
 	}
 
-	void render() override {
+	void updateFrame() override {
 		// 定数バッファ更新
 		updateUniformBuffers();
-
-		// 次の画像インデックス取得
-		// ウィンドウリサイズチェック
-		uint32_t image_index;
-
-		VulkanBaseApp::prepareFrame();
-
-		// 転送
-		this->submit_info.commandBufferCount = 1;
-		this->submit_info.pCommandBuffers = &command_buffers[image_index];
-		if (vkQueueSubmit(this->graphics_queue, 1, &submit_info, VK_NULL_HANDLE) != VK_SUCCESS) {
-			throw std::runtime_error("failed to queue submit");
-		}
-
-		// present
-		VulkanBaseApp::submitFrame(image_index, );
 	}
-
-	bool renderLoop() {}
 };
 
 int main() {

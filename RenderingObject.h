@@ -20,7 +20,7 @@ public:
 	// すでに読み込んであるモデルの共有
 	void loadModel(Model model);
 	// 描画コマンド
-	void render();
+	void draw();
 
 	void start() override;
 	void update() {
@@ -28,6 +28,7 @@ public:
 			component->update();
 		}
 	}
+	void updateUniformBuffer();
 
 	// 頂点バッファ、インデックスバッファ等
 	Model model;
