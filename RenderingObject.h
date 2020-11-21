@@ -28,7 +28,6 @@ public:
 			component->update();
 		}
 	}
-	void updateUniformBuffer();
 
 	// 頂点バッファ、インデックスバッファ等
 	Model model;

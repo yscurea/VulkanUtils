@@ -3,10 +3,12 @@
 #include "RenderingObject.h"
 #include "Model.h"
 #include "UniformBuffer.h"
+#include "Camera.h"
 
 static std::string model_path = "model/sphere.obj";
 
 class VulkanApp : public VulkanBaseApp {
+	Camera camera;
 	std::vector<RenderingObject> spheres;
 	// メモリ節約のため一つのモデルを全てで共有する．排他的アクセスは保証される
 	Model unique_model;
@@ -251,22 +253,22 @@ class VulkanApp : public VulkanBaseApp {
 		clearValues[0].color = this->default_clear_color;
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
-		VkRenderPassBeginInfo renderPassBeginInfo{};
-		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassBeginInfo.renderPass = this->render_pass;
-		renderPassBeginInfo.renderArea.offset.x = 0;
-		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = this->window_width;
-		renderPassBeginInfo.renderArea.extent.height = this->window_height;
-		renderPassBeginInfo.clearValueCount = 2;
-		renderPassBeginInfo.pClearValues = clearValues;
+		VkRenderPassBeginInfo render_pass_begin_info{};
+		render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		render_pass_begin_info.renderPass = this->render_pass;
+		render_pass_begin_info.renderArea.offset.x = 0;
+		render_pass_begin_info.renderArea.offset.y = 0;
+		render_pass_begin_info.renderArea.extent.width = this->window_width;
+		render_pass_begin_info.renderArea.extent.height = this->window_height;
+		render_pass_begin_info.clearValueCount = 2;
+		render_pass_begin_info.pClearValues = clearValues;
 
 		for (int32_t i = 0; i < this->command_buffers.size(); ++i) {
-			renderPassBeginInfo.framebuffer = this->swapchain_frame_buffers[i];
+			render_pass_begin_info.framebuffer = this->swapchain_frame_buffers[i];
 
 			vulkan::utils::checkResult(vkBeginCommandBuffer(this->command_buffers[i], &command_buffer_begin_info));
 
-			vkCmdBeginRenderPass(this->command_buffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+			vkCmdBeginRenderPass(this->command_buffers[i], &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
 			vkCmdBindPipeline(this->command_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, this->graphics_pipeline);
 
@@ -313,21 +315,20 @@ class VulkanApp : public VulkanBaseApp {
 		}
 	}
 	void updateUniformBuffers() {
+		glm::vec3 position = { 0.0f,0.0f,0.0f };
 		// 各球体の定数バッファを更新する
 		for (auto sphere : this->spheres) {
-			sphere.updateUniformBuffer();
+			// sphere.updateUniformBuffer();
+			sphere.matrices.projection = camera.perspective;
+			sphere.matrices.view = camera.view;
+			position.x += 1.0f;
+			sphere.matrices.model = glm::translate(glm::mat4(1.0f), position);
 		}
 	}
-
-public:
-	VulkanApp(uint32_t sphere_count = 100) {
-		this->spheres.resize(sphere_count);
-		// vulkan 初期化
-		this->initVulkan();
-		// 諸々準備
-		this->prepare();
+	void updateFrame() override {
+		// 定数バッファ更新
+		updateUniformBuffers();
 	}
-
 	// 事前準備を全てここでする
 	void prepare() {
 		VulkanBaseApp::prepare();
@@ -343,10 +344,15 @@ public:
 		this->prepareCommandBuffers();
 	}
 
-	void updateFrame() override {
-		// 定数バッファ更新
-		updateUniformBuffers();
+public:
+	VulkanApp(uint32_t sphere_count = 100) {
+		this->spheres.resize(sphere_count);
+		// vulkan 初期化
+		this->initVulkan();
+		// 諸々準備
+		this->prepare();
 	}
+
 };
 
 int main() {
