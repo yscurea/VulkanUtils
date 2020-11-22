@@ -47,3 +47,20 @@ void Model::load(std::string file_path) {
 		}
 	}
 }
+
+void Model::bindVertexBuffers(VkCommandBuffer command_buffer) {
+	VkBuffer vertex_buffers[] = { this->vertexBuffer };
+	VkDeviceSize offset[] = { 0 };
+	vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offset);
+}
+void Model::bindIndexBuffers(VkCommandBuffer command_buffer) {
+	vkCmdBindIndexBuffer(command_buffer, this->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+}
+
+void Model::draw(VkCommandBuffer command_buffer, bool is_bound) {
+	if (is_bound == false) {
+		bindVertexBuffers(command_buffer);
+		bindIndexBuffers(command_buffer);
+	}
+	vkCmdDrawIndexed(command_buffer, static_cast<uint32_t>(this->indices.size()), 1, 0, 0, 0);
+}

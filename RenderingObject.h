@@ -20,13 +20,16 @@ public:
 	// すでに読み込んであるモデルの共有
 	void loadModel(Model model);
 	// 描画コマンド
-	void draw();
+	void draw(VkCommandBuffer command_buffer, bool is_bound_buffers = true);
 
 	void start() override;
 	void update() {
-		for (auto component : this->component_list) {
-			component->update();
-		}
+		// 本当はここで描画命令を与えたい
+		/*
+			for (auto component : this->component_list) {
+				component->update();
+			}
+		*/
 	}
 
 	// 頂点バッファ、インデックスバッファ等
@@ -44,5 +47,5 @@ public:
 	// 各シェーダーの参照
 	std::vector<VkShaderModule*> shader_modules;
 	// コンポネント
-	std::list<Component*> component_list;
+	// std::list<Component*> component_list;
 };

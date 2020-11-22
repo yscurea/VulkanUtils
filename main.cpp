@@ -5,6 +5,8 @@
 #include "UniformBuffer.h"
 #include "Camera.h"
 
+// オブジェクト指向設計で描画をどう扱えばいいのかいまいちわからない
+
 static std::string model_path = "model/sphere.obj";
 
 class VulkanApp : public VulkanBaseApp {
@@ -344,6 +346,11 @@ class VulkanApp : public VulkanBaseApp {
 		// コマンドバッファ準備
 		this->prepareCommandBuffers();
 	}
+	void cleanup() {
+		vkDestroyPipeline(this->device, this->graphics_pipeline, nullptr);
+
+		VulkanBaseApp::cleanup();
+	}
 
 public:
 	VulkanApp(uint32_t sphere_count = 100) {
@@ -353,7 +360,9 @@ public:
 		// 諸々準備
 		this->prepare();
 	}
-
+	~VulkanApp() {
+		this->cleanup();
+	}
 };
 
 int main() {

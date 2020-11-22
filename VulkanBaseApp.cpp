@@ -265,8 +265,10 @@ void VulkanBaseApp::createSwapchain() {
 		this->swapchain_image_views[i] = vulkan::utils::createImageView(this->device, this->swapchain_images[i], this->swapchain_image_format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 	}
 
-	createColorResources();
-	createDepthResources();
+	this->createColorResources();
+	this->createDepthResources();
+
+	this->createSyncObjects();
 
 }
 void VulkanBaseApp::recreateSwapchain() {
@@ -299,8 +301,59 @@ void VulkanBaseApp::createDepthResources() {
 	vulkan::utils::createImage(this->device, this->physical_device, this->swapchain_extent.width, this->swapchain_extent.height, 1, this->sample_count_flag_bits, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->depth_image, this->depth_image_memory);
 	this->depth_image_view = vulkan::utils::createImageView(this->device, this->depth_image, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
 }
-void VulkanBaseApp::deleteSwapchain() {
+void VulkanBaseApp::createSyncObjects() {
+	this->image_available_semaphores.resize(semaphores_size);
+	this->render_finished_semaphores.resize(semaphores_size);
+	this->in_flight_fences.resize(semaphores_size);
+	this->images_in_flight.resize(this->swapchain_images.size(), VK_NULL_HANDLE);
 
+	VkSemaphoreCreateInfo semaphoreInfo{};
+	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+	VkFenceCreateInfo fenceInfo{};
+	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+	for (size_t i = 0; i < semaphores_size; i++) {
+		if (vkCreateSemaphore(this->device, &semaphoreInfo, nullptr, &this->image_available_semaphores[i]) != VK_SUCCESS ||
+			vkCreateSemaphore(this->device, &semaphoreInfo, nullptr, &this->render_finished_semaphores[i]) != VK_SUCCESS ||
+			vkCreateFence(this->device, &fenceInfo, nullptr, &this->in_flight_fences[i]) != VK_SUCCESS) {
+			throw std::runtime_error("failed to create synchronization objects for a frame!");
+		}
+	}
+
+}
+void VulkanBaseApp::deleteSwapchain() {
+	vkDestroyImageView(this->device, this->depth_image_view, nullptr);
+	vkDestroyImage(this->device, this->depth_image, nullptr);
+	vkFreeMemory(this->device, this->depth_image_memory, nullptr);
+
+	vkDestroyImageView(this->device, this->color_image_view, nullptr);
+	vkDestroyImage(this->device, this->color_image, nullptr);
+	vkFreeMemory(this->device, this->color_image_memory, nullptr);
+
+	for (auto framebuffer : this->swapchain_frame_buffers) {
+		vkDestroyFramebuffer(this->device, framebuffer, nullptr);
+	}
+
+	vkFreeCommandBuffers(this->device, this->command_pool, static_cast<uint32_t>(command_buffers.size()), commandBuffers.data());
+
+	// vkDestroyPipeline(this->device, this->graphics_pipeline, nullptr);
+	// vkDestroyPipelineLayout(this->device, this->pipeline_layout, nullptr);
+	vkDestroyRenderPass(this->device, this->render_pass, nullptr);
+
+	for (auto imageView : this->swapchain_image_views) {
+		vkDestroyImageView(this->device, imageView, nullptr);
+	}
+
+	vkDestroySwapchainKHR(this->device, this->swapchain, nullptr);
+
+	for (size_t i = 0; i < this->swapchain_images.size(); i++) {
+		vkDestroyBuffer(this->device, this->uniform_buffers[i], nullptr);
+		vkFreeMemory(this->device, this->uniform_buffers_memory[i], nullptr);
+	}
+
+	vkDestroyDescriptorPool(this->device, this->descriptor_pool, nullptr);
 }
 
 // --------------------- render pass -------------------
@@ -412,7 +465,6 @@ void VulkanBaseApp::createCommandPool() {
 		throw std::runtime_error("failed to create command pool");
 	}
 }
-
 void VulkanBaseApp::createCommandBuffers() {
 	this->command_buffers.resize(this->swapchain_image_count);
 

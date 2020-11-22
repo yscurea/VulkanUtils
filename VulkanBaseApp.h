@@ -116,18 +116,15 @@ protected:
 	std::vector<VkSemaphore> image_available_semaphores;
 	std::vector<VkSemaphore> render_finished_semaphores;
 	uint32_t semaphores_size = 2;
-	bool framebuffer_resized = false;
-
-	void createSemaphores();
-
 	std::vector<VkFence> in_flight_fences;
 	std::vector<VkFence> images_in_flight;
 	size_t fences_size = 2;
 	size_t current_frame = 0;
 
-	void createFences();
+	void createSyncObjects();
 
 	// frame buffer
+	bool framebuffer_resized = false;
 	std::vector<VkFramebuffer> swapchain_frame_buffers;
 	// color buffer
 	VkImage color_image;
