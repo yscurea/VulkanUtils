@@ -13,3 +13,13 @@ void RenderingObject::loadModel(std::string file_path) {
 void RenderingObject::loadModel(Model model) {
 	this->model = model;
 }
+
+
+void RenderingObject::update() {
+	// –{“–‚Í‚±‚±‚Å•`‰æ–½—ß‚ğ—^‚¦‚½‚¢
+	/*
+		for (auto component : this->component_list) {
+			component->update();
+		}
+	*/
+}

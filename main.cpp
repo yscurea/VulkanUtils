@@ -290,12 +290,13 @@ class VulkanApp : public VulkanBaseApp {
 
 			//todo: 頂点バッファとインデックスバッファのバインド
 			// 同じバッファを使用するので一回だけバインドする
-			this->unique_model.bind();
+			this->unique_model.bindVertexBuffers(this->command_buffers[i]);
+			this->unique_model.bindIndexBuffers(this->command_buffers[i]);
 
 			for (auto sphere : this->spheres) {
 				// 定数バッファ等はそれぞれバインドする
 				vkCmdBindDescriptorSets(this->command_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, this->pipeline_layout, 0, 1, &sphere.descriptor_set, 0, nullptr);
-				sphere.draw();
+				sphere.draw(this->command_buffers[i]);
 			}
 
 			vkCmdEndRenderPass(this->command_buffers[i]);
@@ -315,17 +316,19 @@ class VulkanApp : public VulkanBaseApp {
 				sphere.uniform_buffer.buffer,
 				sphere.uniform_buffer.memory
 			);
+			vulkan::utils::checkResult(sphere.uniform_buffer.map());
 		}
+		updateUniformBuffers();
 	}
 	void updateUniformBuffers() {
 		glm::vec3 position = { 0.0f,0.0f,0.0f };
 		// 各球体の定数バッファを更新する
 		for (auto sphere : this->spheres) {
-			// sphere.updateUniformBuffer();
 			sphere.matrices.projection = camera->perspective;
 			sphere.matrices.view = camera->view;
 			position.x += 1.0f;
 			sphere.matrices.model = glm::translate(glm::mat4(1.0f), position);
+			memcpy(sphere.uniform_buffer.mapped, &sphere.matrices, sizeof(sphere.matrices));
 		}
 	}
 	void updateFrame() override {

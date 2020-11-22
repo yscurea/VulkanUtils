@@ -37,7 +37,7 @@ public:
 	// ÉRÉsÅ[
 	void copyTo(void* data, VkDeviceSize size);
 	// ñ≥å¯âª
-	VkResult invalidate(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
+	// VkResult invalidate(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
 	// îjä¸
-	void deleted();
+	// void deleted();
 };

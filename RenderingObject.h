@@ -23,14 +23,7 @@ public:
 	void draw(VkCommandBuffer command_buffer, bool is_bound_buffers = true);
 
 	void start() override;
-	void update() {
-		// 本当はここで描画命令を与えたい
-		/*
-			for (auto component : this->component_list) {
-				component->update();
-			}
-		*/
-	}
+	void update()override;
 
 	// 頂点バッファ、インデックスバッファ等
 	Model model;

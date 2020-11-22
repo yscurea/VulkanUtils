@@ -2,33 +2,33 @@
 
 
 VkResult Buffer::map(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0) {
-	return vkMapMemory(*device, *memory, offset, size, 0, &mapped);
+	return vkMapMemory(this->device, this->memory, offset, size, 0, &this->mapped);
 }
 
 
 void Buffer::unmap() {
 	if (mapped) {
-		vkUnmapMemory(*device, *memory);
+		vkUnmapMemory(this->device, this->memory);
 		mapped = nullptr;
 	}
 }
 
 VkResult Buffer::bind(VkDeviceSize offset) {
-	return vkBindBufferMemory(*device, buffer, *memory, offset);
+	return vkBindBufferMemory(this->device, this->buffer, this->memory, offset);
 }
 
 
 void Buffer::setupDescriptor(VkDeviceSize size, VkDeviceSize offset) {
-	descriptor.offset = offset;
-	descriptor.buffer = buffer;
-	descriptor.range = size;
+	this->descriptor_buffer_info.offset = offset;
+	this->descriptor_buffer_info.buffer = this->buffer;
+	this->descriptor_buffer_info.range = size;
 }
 
 
 
 void Buffer::copyTo(void* data, VkDeviceSize size) {
-	if (mapped == nullptr) {
+	if (this->mapped == nullptr) {
 		throw std::runtime_error("failed to copy buffer");
 	}
-	memcpy(mapped, data, size);
+	memcpy(this->mapped, data, size);
 }
