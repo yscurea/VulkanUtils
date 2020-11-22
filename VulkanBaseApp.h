@@ -122,7 +122,11 @@ protected:
 
 	std::vector<VkFence> in_flight_fences;
 	std::vector<VkFence> images_in_flight;
+	size_t fences_size = 2;
 	size_t current_frame = 0;
+
+	void createFences();
+
 	// frame buffer
 	std::vector<VkFramebuffer> swapchain_frame_buffers;
 	// color buffer

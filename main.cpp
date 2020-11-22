@@ -8,7 +8,7 @@
 static std::string model_path = "model/sphere.obj";
 
 class VulkanApp : public VulkanBaseApp {
-	Camera camera;
+	Camera* camera = new Camera(this->swapchain_extent.width, this->swapchain_extent.height);
 	std::vector<RenderingObject> spheres;
 	// メモリ節約のため一つのモデルを全てで共有する．排他的アクセスは保証される
 	Model unique_model;
@@ -112,8 +112,8 @@ class VulkanApp : public VulkanBaseApp {
 		auto vertShaderCode = vulkan::utils::readFile("shaders/vert.spv");
 		auto fragShaderCode = vulkan::utils::readFile("shaders/frag.spv");
 
-		VkShaderModule vertShaderModule = vulkan::utils::createShaderModule(vertShaderCode);
-		VkShaderModule fragShaderModule = vulkan::utils::createShaderModule(fragShaderCode);
+		VkShaderModule vertShaderModule = vulkan::utils::createShaderModule(this->device, vertShaderCode);
+		VkShaderModule fragShaderModule = vulkan::utils::createShaderModule(this->device, fragShaderCode);
 
 		// 頂点シェーダ
 		VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
@@ -202,16 +202,16 @@ class VulkanApp : public VulkanBaseApp {
 		colorBlendAttachment.blendEnable = VK_FALSE;
 
 		// パイプラインカラーブレンドステートの情報設定
-		VkPipelineColorBlendStateCreateInfo colorBlending{};
-		colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-		colorBlending.logicOpEnable = VK_FALSE;
-		colorBlending.logicOp = VK_LOGIC_OP_COPY;
-		colorBlending.attachmentCount = 1;
-		colorBlending.pAttachments = &colorBlendAttachment;
-		colorBlending.blendConstants[0] = 0.0f;
-		colorBlending.blendConstants[1] = 0.0f;
-		colorBlending.blendConstants[2] = 0.0f;
-		colorBlending.blendConstants[3] = 0.0f;
+		VkPipelineColorBlendStateCreateInfo color_blending{};
+		color_blending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+		color_blending.logicOpEnable = VK_FALSE;
+		color_blending.logicOp = VK_LOGIC_OP_COPY;
+		color_blending.attachmentCount = 1;
+		color_blending.pAttachments = &colorBlendAttachment;
+		color_blending.blendConstants[0] = 0.0f;
+		color_blending.blendConstants[1] = 0.0f;
+		color_blending.blendConstants[2] = 0.0f;
+		color_blending.blendConstants[3] = 0.0f;
 
 		// パイプラインレイアウトの情報設定
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
@@ -235,7 +235,7 @@ class VulkanApp : public VulkanBaseApp {
 		pipelineInfo.pRasterizationState = &rasterizer;
 		pipelineInfo.pMultisampleState = &multisampling;
 		pipelineInfo.pDepthStencilState = &depthStencil;
-		pipelineInfo.pColorBlendState = &colorBlending;
+		pipelineInfo.pColorBlendState = &color_blending;
 		pipelineInfo.layout = this->pipeline_layout;
 		pipelineInfo.renderPass = this->render_pass;
 		pipelineInfo.subpass = 0;
@@ -306,6 +306,7 @@ class VulkanApp : public VulkanBaseApp {
 		for (auto sphere : this->spheres) {
 			vulkan::utils::createBuffer(
 				this->device,
+				this->physical_device,
 				sizeof(MVP),
 				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -319,8 +320,8 @@ class VulkanApp : public VulkanBaseApp {
 		// 各球体の定数バッファを更新する
 		for (auto sphere : this->spheres) {
 			// sphere.updateUniformBuffer();
-			sphere.matrices.projection = camera.perspective;
-			sphere.matrices.view = camera.view;
+			sphere.matrices.projection = camera->perspective;
+			sphere.matrices.view = camera->view;
 			position.x += 1.0f;
 			sphere.matrices.model = glm::translate(glm::mat4(1.0f), position);
 		}

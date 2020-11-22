@@ -2,6 +2,33 @@
 
 #include <vk_mem_alloc.h>
 
+
+// ------------ static -------------
+VkFormat findSupportedFormat(VkPhysicalDevice& physical_device, const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
+	for (VkFormat format : candidates) {
+		VkFormatProperties props;
+		vkGetPhysicalDeviceFormatProperties(physical_device, format, &props);
+		if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
+			return format;
+		}
+		else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
+			return format;
+		}
+	}
+	throw std::runtime_error("failed to find supported format!");
+}
+
+VkFormat findDepthFormat(VkPhysicalDevice physical_device) {
+	return findSupportedFormat(
+		physical_device,
+		{ VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
+		VK_IMAGE_TILING_OPTIMAL,
+		VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
+	);
+}
+
+
+
 // public ---------------------
 void VulkanBaseApp::initVulkan() {
 	// インスタンス作成
@@ -180,15 +207,15 @@ void VulkanBaseApp::createSurface() {
 
 // -------------------- swapchain ----------------------
 void VulkanBaseApp::createSwapchain() {
-	vulkan::SwapChainSupportDetails swapChainSupport = vulkan::querySwapChainSupport(this->physical_device, this->surface);
+	vulkan::SwapChainSupportDetails swapchainSupport = vulkan::querySwapChainSupport(this->physical_device, this->surface);
 
-	VkSurfaceFormatKHR surfaceFormat = vulkan::chooseSwapSurfaceFormat(swapChainSupport.formats);
-	VkPresentModeKHR presentMode = vulkan::chooseSwapPresentMode(swapChainSupport.presentModes);
-	VkExtent2D extent = vulkan::chooseSwapExtent(swapChainSupport.capabilities, this->window);
+	VkSurfaceFormatKHR surfaceFormat = vulkan::chooseSwapSurfaceFormat(swapchainSupport.formats);
+	VkPresentModeKHR presentMode = vulkan::chooseSwapPresentMode(swapchainSupport.presentModes);
+	VkExtent2D extent = vulkan::chooseSwapExtent(swapchainSupport.capabilities, this->window);
 
-	uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
-	if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
-		imageCount = swapChainSupport.capabilities.maxImageCount;
+	uint32_t imageCount = swapchainSupport.capabilities.minImageCount + 1;
+	if (swapchainSupport.capabilities.maxImageCount > 0 && imageCount > swapchainSupport.capabilities.maxImageCount) {
+		imageCount = swapchainSupport.capabilities.maxImageCount;
 	}
 
 	VkSwapchainCreateInfoKHR createInfo{};
@@ -215,7 +242,7 @@ void VulkanBaseApp::createSwapchain() {
 		createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	}
 
-	createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
+	createInfo.preTransform = swapchainSupport.capabilities.currentTransform;
 	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 	createInfo.presentMode = presentMode;
 	createInfo.clipped = VK_TRUE;
@@ -237,6 +264,9 @@ void VulkanBaseApp::createSwapchain() {
 	for (uint32_t i = 0; i < swapchain_images.size(); i++) {
 		this->swapchain_image_views[i] = vulkan::utils::createImageView(this->device, this->swapchain_images[i], this->swapchain_image_format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 	}
+
+	createColorResources();
+	createDepthResources();
 
 }
 void VulkanBaseApp::recreateSwapchain() {
@@ -260,13 +290,13 @@ void VulkanBaseApp::recreateSwapchain() {
 void VulkanBaseApp::createColorResources() {
 	VkFormat colorFormat = swapchain_image_format;
 
-	vulkan::utils::createImage(this->device, this->swapchain_extent.width, this->swapchain_extent.height, 1, this->sample_count_flag_bits, colorFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->color_image, this->color_image_memory);
+	vulkan::utils::createImage(this->device, this->physical_device, this->swapchain_extent.width, this->swapchain_extent.height, 1, this->sample_count_flag_bits, colorFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->color_image, this->color_image_memory);
 	this->color_image_view = vulkan::utils::createImageView(this->device, this->color_image, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 }
 void VulkanBaseApp::createDepthResources() {
-	VkFormat depthFormat = this->findDepthFormat();
+	VkFormat depthFormat = findDepthFormat(this->physical_device);
 
-	vulkan::utils::createImage(this->device, this->swapchain_extent.width, this->swapchain_extent.height, 1, this->msaaSamples, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->depth_image, this->depth_image_memory);
+	vulkan::utils::createImage(this->device, this->physical_device, this->swapchain_extent.width, this->swapchain_extent.height, 1, this->sample_count_flag_bits, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, this->depth_image, this->depth_image_memory);
 	this->depth_image_view = vulkan::utils::createImageView(this->device, this->depth_image, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
 }
 void VulkanBaseApp::deleteSwapchain() {
